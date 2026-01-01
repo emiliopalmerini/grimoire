@@ -223,46 +223,118 @@ func (h *List%sHandler) Handle(ctx context.Context, query List%sQuery) ([]*%s.%s
 `, moduleImportPath, namePascal, namePascal, name, namePascal, name, namePascal, namePascal, namePascal, namePascal, name, namePascal)
 }
 
-func httpHandlerTemplate(name, namePascal, apiType string) string {
-	responseType := "JSON"
-	if apiType == "html" {
-		responseType = "HTML"
-	}
-
+func httpHandlerTemplate(name, namePascal, apiType, moduleImportPath string) string {
 	return fmt.Sprintf(`package http
 
 import (
+	"encoding/json"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+
+	"%s"
+	"%s/commands"
+	"%s/queries"
 )
 
 type Handler struct {
-	// Add dependencies (command/query handlers)
+	createHandler *commands.Create%sHandler
+	updateHandler *commands.Update%sHandler
+	deleteHandler *commands.Delete%sHandler
+	getHandler    *queries.Get%sHandler
+	listHandler   *queries.List%sHandler
 }
 
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(
+	createHandler *commands.Create%sHandler,
+	updateHandler *commands.Update%sHandler,
+	deleteHandler *commands.Delete%sHandler,
+	getHandler *queries.Get%sHandler,
+	listHandler *queries.List%sHandler,
+) *Handler {
+	return &Handler{
+		createHandler: createHandler,
+		updateHandler: updateHandler,
+		deleteHandler: deleteHandler,
+		getHandler:    getHandler,
+		listHandler:   listHandler,
+	}
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	// %s response
+	result, err := h.listHandler.Handle(r.Context(), queries.List%sQuery{})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
 }
 
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
-	// %s response
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	result, err := h.getHandler.Handle(r.Context(), queries.Get%sQuery{ID: id})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	// %s response
+	var cmd commands.Create%sCommand
+	if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := h.createHandler.Handle(r.Context(), cmd); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	// %s response
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	var cmd commands.Update%sCommand
+	if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	cmd.ID = id
+	if err := h.updateHandler.Handle(r.Context(), cmd); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	// %s response
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	if err := h.deleteHandler.Handle(r.Context(), commands.Delete%sCommand{ID: id}); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
-`, responseType, responseType, responseType, responseType, responseType)
+`, moduleImportPath, moduleImportPath, moduleImportPath,
+		namePascal, namePascal, namePascal, namePascal, namePascal,
+		namePascal, namePascal, namePascal, namePascal, namePascal,
+		namePascal, namePascal, namePascal, namePascal, namePascal)
 }
 
 func httpRoutesTemplate(name, namePascal string) string {
@@ -282,29 +354,113 @@ func RegisterRoutes(r chi.Router, h *Handler) {
 `, name)
 }
 
-func amqpConsumerTemplate(name, namePascal string) string {
+func amqpConsumerTemplate(name, namePascal, moduleImportPath string) string {
 	return fmt.Sprintf(`package amqp
 
+import (
+	"context"
+	"encoding/json"
+	"log"
+
+	amqp "github.com/rabbitmq/amqp091-go"
+
+	"%s/commands"
+)
+
 type Consumer struct {
-	// Add dependencies
+	conn          *amqp.Connection
+	channel       *amqp.Channel
+	createHandler *commands.Create%sHandler
+	updateHandler *commands.Update%sHandler
+	deleteHandler *commands.Delete%sHandler
 }
 
-func NewConsumer() *Consumer {
-	return &Consumer{}
+func NewConsumer(
+	conn *amqp.Connection,
+	createHandler *commands.Create%sHandler,
+	updateHandler *commands.Update%sHandler,
+	deleteHandler *commands.Delete%sHandler,
+) (*Consumer, error) {
+	ch, err := conn.Channel()
+	if err != nil {
+		return nil, err
+	}
+	return &Consumer{
+		conn:          conn,
+		channel:       ch,
+		createHandler: createHandler,
+		updateHandler: updateHandler,
+		deleteHandler: deleteHandler,
+	}, nil
 }
 
-func (c *Consumer) Handle%sCreated(body []byte) error {
-	return nil
+func (c *Consumer) Close() error {
+	return c.channel.Close()
 }
 
-func (c *Consumer) Handle%sUpdated(body []byte) error {
-	return nil
+func (c *Consumer) Consume(ctx context.Context, queueName string) error {
+	msgs, err := c.channel.Consume(queueName, "", false, false, false, false, nil)
+	if err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case msg := <-msgs:
+			if err := c.handleMessage(ctx, msg); err != nil {
+				log.Printf("error handling message: %%v", err)
+				msg.Nack(false, true)
+				continue
+			}
+			msg.Ack(false)
+		}
+	}
 }
 
-func (c *Consumer) Handle%sDeleted(body []byte) error {
-	return nil
+func (c *Consumer) handleMessage(ctx context.Context, msg amqp.Delivery) error {
+	switch msg.Type {
+	case "%s.created":
+		return c.handleCreated(ctx, msg.Body)
+	case "%s.updated":
+		return c.handleUpdated(ctx, msg.Body)
+	case "%s.deleted":
+		return c.handleDeleted(ctx, msg.Body)
+	default:
+		log.Printf("unknown message type: %%s", msg.Type)
+		return nil
+	}
 }
-`, namePascal, namePascal, namePascal)
+
+func (c *Consumer) handleCreated(ctx context.Context, body []byte) error {
+	var cmd commands.Create%sCommand
+	if err := json.Unmarshal(body, &cmd); err != nil {
+		return err
+	}
+	return c.createHandler.Handle(ctx, cmd)
+}
+
+func (c *Consumer) handleUpdated(ctx context.Context, body []byte) error {
+	var cmd commands.Update%sCommand
+	if err := json.Unmarshal(body, &cmd); err != nil {
+		return err
+	}
+	return c.updateHandler.Handle(ctx, cmd)
+}
+
+func (c *Consumer) handleDeleted(ctx context.Context, body []byte) error {
+	var cmd commands.Delete%sCommand
+	if err := json.Unmarshal(body, &cmd); err != nil {
+		return err
+	}
+	return c.deleteHandler.Handle(ctx, cmd)
+}
+`, moduleImportPath,
+		namePascal, namePascal, namePascal,
+		namePascal, namePascal, namePascal,
+		name, name, name,
+		namePascal, namePascal, namePascal)
 }
 
 func indexViewTemplate(name, namePascal string) string {

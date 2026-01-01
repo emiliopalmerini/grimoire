@@ -142,10 +142,10 @@ func createFiles(moduleDir string, opts ModuleOptions, goModulePath string) erro
 	for _, transport := range opts.Transports {
 		switch transport {
 		case "http":
-			files[filepath.Join(moduleDir, "transport", "http", "handler.go")] = httpHandlerTemplate(name, namePascal, opts.APIType)
+			files[filepath.Join(moduleDir, "transport", "http", "handler.go")] = httpHandlerTemplate(name, namePascal, opts.APIType, moduleImportPath)
 			files[filepath.Join(moduleDir, "transport", "http", "routes.go")] = httpRoutesTemplate(name, namePascal)
 		case "amqp":
-			files[filepath.Join(moduleDir, "transport", "amqp", "consumer.go")] = amqpConsumerTemplate(name, namePascal)
+			files[filepath.Join(moduleDir, "transport", "amqp", "consumer.go")] = amqpConsumerTemplate(name, namePascal, moduleImportPath)
 		}
 	}
 
