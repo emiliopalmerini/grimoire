@@ -1,0 +1,6 @@
+# Binaries
+grimoire
+*.exe
+
+# Nix
+result
