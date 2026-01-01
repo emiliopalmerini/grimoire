@@ -14,7 +14,7 @@ type %s struct {
 `, name, namePascal)
 }
 
-func serviceTemplate(name, namePascal, moduleImportPath string) string {
+func serviceTemplate(name, namePascal string) string {
 	return fmt.Sprintf(`package %s
 
 import (
@@ -223,7 +223,7 @@ func (h *List%sHandler) Handle(ctx context.Context, query List%sQuery) ([]*%s.%s
 `, moduleImportPath, namePascal, namePascal, name, namePascal, name, namePascal, namePascal, namePascal, namePascal, name, namePascal)
 }
 
-func httpHandlerTemplate(name, namePascal, apiType, moduleImportPath string) string {
+func httpHandlerTemplate(namePascal, moduleImportPath string) string {
 	return fmt.Sprintf(`package http
 
 import (
@@ -337,7 +337,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		namePascal, namePascal, namePascal, namePascal, namePascal)
 }
 
-func httpRoutesTemplate(name, namePascal string) string {
+func httpRoutesTemplate(name string) string {
 	return fmt.Sprintf(`package http
 
 import "github.com/go-chi/chi/v5"

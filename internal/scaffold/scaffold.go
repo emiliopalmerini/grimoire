@@ -70,8 +70,8 @@ func findGoModulePath() (string, error) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix(line, "module ") {
-			return strings.TrimPrefix(line, "module "), nil
+		if after, ok := strings.CutPrefix(line, "module "); ok {
+			return after, nil
 		}
 	}
 
@@ -116,7 +116,7 @@ func createFiles(moduleDir string, opts ModuleOptions, goModulePath string) erro
 
 	files := map[string]string{
 		filepath.Join(moduleDir, "models.go"):     modelsTemplate(name, namePascal),
-		filepath.Join(moduleDir, "service.go"):    serviceTemplate(name, namePascal, moduleImportPath),
+		filepath.Join(moduleDir, "service.go"):    serviceTemplate(name, namePascal),
 		filepath.Join(moduleDir, "repository.go"): repositoryInterfaceTemplate(name, namePascal),
 	}
 
@@ -142,8 +142,8 @@ func createFiles(moduleDir string, opts ModuleOptions, goModulePath string) erro
 	for _, transport := range opts.Transports {
 		switch transport {
 		case "http":
-			files[filepath.Join(moduleDir, "transport", "http", "handler.go")] = httpHandlerTemplate(name, namePascal, opts.APIType, moduleImportPath)
-			files[filepath.Join(moduleDir, "transport", "http", "routes.go")] = httpRoutesTemplate(name, namePascal)
+			files[filepath.Join(moduleDir, "transport", "http", "handler.go")] = httpHandlerTemplate(namePascal, moduleImportPath)
+			files[filepath.Join(moduleDir, "transport", "http", "routes.go")] = httpRoutesTemplate(name)
 		case "amqp":
 			files[filepath.Join(moduleDir, "transport", "amqp", "consumer.go")] = amqpConsumerTemplate(name, namePascal, moduleImportPath)
 		}
