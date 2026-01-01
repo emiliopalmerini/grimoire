@@ -97,7 +97,7 @@ func NewUpdate%sHandler() *Update%sHandler {
 func (h *Update%sHandler) Handle(ctx context.Context, cmd Update%sCommand) error {
 	return nil
 }
-`, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
+`, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
 }
 
 func deleteCommandTemplate(name, namePascal string) string {
@@ -120,7 +120,7 @@ func NewDelete%sHandler() *Delete%sHandler {
 func (h *Delete%sHandler) Handle(ctx context.Context, cmd Delete%sCommand) error {
 	return nil
 }
-`, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
+`, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
 }
 
 func getQueryTemplate(name, namePascal string) string {
@@ -147,7 +147,7 @@ func NewGet%sHandler() *Get%sHandler {
 func (h *Get%sHandler) Handle(ctx context.Context, query Get%sQuery) (*Get%sResult, error) {
 	return nil, nil
 }
-`, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
+`, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
 }
 
 func listQueryTemplate(name, namePascal string) string {
@@ -180,7 +180,7 @@ func NewList%sHandler() *List%sHandler {
 func (h *List%sHandler) Handle(ctx context.Context, query List%sQuery) (*List%sResult, error) {
 	return nil, nil
 }
-`, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
+`, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
 }
 
 func httpHandlerTemplate(name, namePascal, apiType string) string {
