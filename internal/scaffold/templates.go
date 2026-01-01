@@ -20,22 +20,18 @@ type Update%sRequest struct {
 func serviceTemplate(name, namePascal, moduleImportPath string) string {
 	return fmt.Sprintf(`package %s
 
-import (
-	"%s/persistence"
-)
-
 type Service struct {
-	repo persistence.%sRepository
+	repo %sRepository
 }
 
-func NewService(repo persistence.%sRepository) *Service {
+func NewService(repo %sRepository) *Service {
 	return &Service{repo: repo}
 }
-`, name, moduleImportPath, namePascal, namePascal)
+`, name, namePascal, namePascal)
 }
 
-func repositoryTemplate(name, namePascal string) string {
-	return fmt.Sprintf(`package persistence
+func repositoryInterfaceTemplate(name, namePascal string) string {
+	return fmt.Sprintf(`package %s
 
 import "context"
 
@@ -46,11 +42,7 @@ type %sRepository interface {
 	Update(ctx context.Context, entity *%s) error
 	Delete(ctx context.Context, id string) error
 }
-
-type %s struct {
-	ID string
-}
-`, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
+`, name, namePascal, namePascal, namePascal, namePascal, namePascal)
 }
 
 func createCommandTemplate(name, namePascal string) string {
@@ -302,4 +294,208 @@ func formViewTemplate(name, namePascal string) string {
   <button type="button" hx-get="/%s" hx-target="#%s-list" hx-swap="outerHTML">Cancel</button>
 </form>
 `, name, name, namePascal, name, name)
+}
+
+func sqliteRepositoryTemplate(name, namePascal string) string {
+	return fmt.Sprintf(`package persistence
+
+import (
+	"context"
+	"database/sql"
+
+	"%s"
+)
+
+type SQLite%sRepository struct {
+	db *sql.DB
+}
+
+func NewSQLite%sRepository(db *sql.DB) *SQLite%sRepository {
+	return &SQLite%sRepository{db: db}
+}
+
+func (r *SQLite%sRepository) Create(ctx context.Context, entity *%s.%s) error {
+	_, err := r.db.ExecContext(ctx, "INSERT INTO %s (id) VALUES (?)", entity.ID)
+	return err
+}
+
+func (r *SQLite%sRepository) GetByID(ctx context.Context, id string) (*%s.%s, error) {
+	row := r.db.QueryRowContext(ctx, "SELECT id FROM %s WHERE id = ?", id)
+	var entity %s.%s
+	if err := row.Scan(&entity.ID); err != nil {
+		return nil, err
+	}
+	return &entity, nil
+}
+
+func (r *SQLite%sRepository) List(ctx context.Context) ([]*%s.%s, error) {
+	rows, err := r.db.QueryContext(ctx, "SELECT id FROM %s")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var entities []*%s.%s
+	for rows.Next() {
+		var entity %s.%s
+		if err := rows.Scan(&entity.ID); err != nil {
+			return nil, err
+		}
+		entities = append(entities, &entity)
+	}
+	return entities, rows.Err()
+}
+
+func (r *SQLite%sRepository) Update(ctx context.Context, entity *%s.%s) error {
+	_, err := r.db.ExecContext(ctx, "UPDATE %s SET id = ? WHERE id = ?", entity.ID, entity.ID)
+	return err
+}
+
+func (r *SQLite%sRepository) Delete(ctx context.Context, id string) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM %s WHERE id = ?", id)
+	return err
+}
+`, name,
+		namePascal,
+		namePascal, namePascal, namePascal,
+		namePascal, name, namePascal, name,
+		namePascal, name, namePascal, name, name, namePascal,
+		namePascal, name, namePascal, name, name, namePascal, name, namePascal,
+		namePascal, name, namePascal, name,
+		namePascal, name)
+}
+
+func postgresRepositoryTemplate(name, namePascal string) string {
+	return fmt.Sprintf(`package persistence
+
+import (
+	"context"
+	"database/sql"
+
+	"%s"
+)
+
+type Postgres%sRepository struct {
+	db *sql.DB
+}
+
+func NewPostgres%sRepository(db *sql.DB) *Postgres%sRepository {
+	return &Postgres%sRepository{db: db}
+}
+
+func (r *Postgres%sRepository) Create(ctx context.Context, entity *%s.%s) error {
+	_, err := r.db.ExecContext(ctx, "INSERT INTO %s (id) VALUES ($1)", entity.ID)
+	return err
+}
+
+func (r *Postgres%sRepository) GetByID(ctx context.Context, id string) (*%s.%s, error) {
+	row := r.db.QueryRowContext(ctx, "SELECT id FROM %s WHERE id = $1", id)
+	var entity %s.%s
+	if err := row.Scan(&entity.ID); err != nil {
+		return nil, err
+	}
+	return &entity, nil
+}
+
+func (r *Postgres%sRepository) List(ctx context.Context) ([]*%s.%s, error) {
+	rows, err := r.db.QueryContext(ctx, "SELECT id FROM %s")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var entities []*%s.%s
+	for rows.Next() {
+		var entity %s.%s
+		if err := rows.Scan(&entity.ID); err != nil {
+			return nil, err
+		}
+		entities = append(entities, &entity)
+	}
+	return entities, rows.Err()
+}
+
+func (r *Postgres%sRepository) Update(ctx context.Context, entity *%s.%s) error {
+	_, err := r.db.ExecContext(ctx, "UPDATE %s SET id = $1 WHERE id = $2", entity.ID, entity.ID)
+	return err
+}
+
+func (r *Postgres%sRepository) Delete(ctx context.Context, id string) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM %s WHERE id = $1", id)
+	return err
+}
+`, name,
+		namePascal,
+		namePascal, namePascal, namePascal,
+		namePascal, name, namePascal, name,
+		namePascal, name, namePascal, name, name, namePascal,
+		namePascal, name, namePascal, name, name, namePascal, name, namePascal,
+		namePascal, name, namePascal, name,
+		namePascal, name)
+}
+
+func mongoRepositoryTemplate(name, namePascal string) string {
+	return fmt.Sprintf(`package persistence
+
+import (
+	"context"
+
+	"%s"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+type Mongo%sRepository struct {
+	collection *mongo.Collection
+}
+
+func NewMongo%sRepository(db *mongo.Database) *Mongo%sRepository {
+	return &Mongo%sRepository{collection: db.Collection("%s")}
+}
+
+func (r *Mongo%sRepository) Create(ctx context.Context, entity *%s.%s) error {
+	_, err := r.collection.InsertOne(ctx, entity)
+	return err
+}
+
+func (r *Mongo%sRepository) GetByID(ctx context.Context, id string) (*%s.%s, error) {
+	var entity %s.%s
+	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&entity)
+	if err != nil {
+		return nil, err
+	}
+	return &entity, nil
+}
+
+func (r *Mongo%sRepository) List(ctx context.Context) ([]*%s.%s, error) {
+	cursor, err := r.collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var entities []*%s.%s
+	if err := cursor.All(ctx, &entities); err != nil {
+		return nil, err
+	}
+	return entities, nil
+}
+
+func (r *Mongo%sRepository) Update(ctx context.Context, entity *%s.%s) error {
+	_, err := r.collection.ReplaceOne(ctx, bson.M{"_id": entity.ID}, entity)
+	return err
+}
+
+func (r *Mongo%sRepository) Delete(ctx context.Context, id string) error {
+	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
+	return err
+}
+`, name,
+		namePascal,
+		namePascal, namePascal, namePascal, name,
+		namePascal, name, namePascal,
+		namePascal, name, namePascal, name, namePascal,
+		namePascal, name, namePascal, name, namePascal,
+		namePascal, name, namePascal,
+		namePascal)
 }

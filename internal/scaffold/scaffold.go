@@ -9,10 +9,11 @@ import (
 )
 
 type ModuleOptions struct {
-	Name       string
-	Transports []string
-	APIType    string
-	WithCRUD   bool
+	Name        string
+	Transports  []string
+	APIType     string
+	WithCRUD    bool
+	Persistence string
 }
 
 func CreateModule(opts ModuleOptions) error {
@@ -80,7 +81,10 @@ func findGoModulePath() (string, error) {
 func createDirectories(moduleDir string, opts ModuleOptions) error {
 	dirs := []string{
 		moduleDir,
-		filepath.Join(moduleDir, "persistence"),
+	}
+
+	if opts.Persistence != "" {
+		dirs = append(dirs, filepath.Join(moduleDir, "persistence"))
 	}
 
 	if opts.WithCRUD {
@@ -111,9 +115,20 @@ func createFiles(moduleDir string, opts ModuleOptions, goModulePath string) erro
 	moduleImportPath := fmt.Sprintf("%s/internal/%s", goModulePath, name)
 
 	files := map[string]string{
-		filepath.Join(moduleDir, "models.go"):                    modelsTemplate(name, namePascal),
-		filepath.Join(moduleDir, "service.go"):                   serviceTemplate(name, namePascal, moduleImportPath),
-		filepath.Join(moduleDir, "persistence", "repository.go"): repositoryTemplate(name, namePascal),
+		filepath.Join(moduleDir, "models.go"):     modelsTemplate(name, namePascal),
+		filepath.Join(moduleDir, "service.go"):    serviceTemplate(name, namePascal, moduleImportPath),
+		filepath.Join(moduleDir, "repository.go"): repositoryInterfaceTemplate(name, namePascal),
+	}
+
+	if opts.Persistence != "" {
+		switch opts.Persistence {
+		case "sqlite":
+			files[filepath.Join(moduleDir, "persistence", "sqlite_repository.go")] = sqliteRepositoryTemplate(name, namePascal)
+		case "postgres":
+			files[filepath.Join(moduleDir, "persistence", "postgres_repository.go")] = postgresRepositoryTemplate(name, namePascal)
+		case "mongodb":
+			files[filepath.Join(moduleDir, "persistence", "mongo_repository.go")] = mongoRepositoryTemplate(name, namePascal)
+		}
 	}
 
 	if opts.WithCRUD {
