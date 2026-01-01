@@ -5,8 +5,10 @@ import "fmt"
 func modelsTemplate(name, namePascal string) string {
 	return fmt.Sprintf(`package %s
 
+import "github.com/google/uuid"
+
 type %s struct {
-	ID   string
+	ID   uuid.UUID
 	Name string
 }
 `, name, namePascal)
@@ -15,7 +17,11 @@ type %s struct {
 func serviceTemplate(name, namePascal, moduleImportPath string) string {
 	return fmt.Sprintf(`package %s
 
-import "context"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 type Service struct {
 	repo %sRepository
@@ -26,10 +32,11 @@ func NewService(repo %sRepository) *Service {
 }
 
 func (s *Service) Create(ctx context.Context, entity *%s) error {
+	entity.ID = uuid.New()
 	return s.repo.Create(ctx, entity)
 }
 
-func (s *Service) GetByID(ctx context.Context, id string) (*%s, error) {
+func (s *Service) GetByID(ctx context.Context, id uuid.UUID) (*%s, error) {
 	return s.repo.GetByID(ctx, id)
 }
 
@@ -41,7 +48,7 @@ func (s *Service) Update(ctx context.Context, entity *%s) error {
 	return s.repo.Update(ctx, entity)
 }
 
-func (s *Service) Delete(ctx context.Context, id string) error {
+func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
 }
 `, name, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
@@ -50,14 +57,18 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 func repositoryInterfaceTemplate(name, namePascal string) string {
 	return fmt.Sprintf(`package %s
 
-import "context"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 type %sRepository interface {
 	Create(ctx context.Context, entity *%s) error
-	GetByID(ctx context.Context, id string) (*%s, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*%s, error)
 	List(ctx context.Context) ([]*%s, error)
 	Update(ctx context.Context, entity *%s) error
-	Delete(ctx context.Context, id string) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 `, name, namePascal, namePascal, namePascal, namePascal, namePascal)
 }
@@ -98,11 +109,13 @@ func updateCommandTemplate(name, namePascal, moduleImportPath string) string {
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	"%s"
 )
 
 type Update%sCommand struct {
-	ID   string
+	ID   uuid.UUID
 	Name string
 }
 
@@ -130,11 +143,13 @@ func deleteCommandTemplate(name, namePascal, moduleImportPath string) string {
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	"%s"
 )
 
 type Delete%sCommand struct {
-	ID string
+	ID uuid.UUID
 }
 
 type Delete%sHandler struct {
@@ -157,11 +172,13 @@ func getQueryTemplate(name, namePascal, moduleImportPath string) string {
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	"%s"
 )
 
 type Get%sQuery struct {
-	ID string
+	ID uuid.UUID
 }
 
 type Get%sHandler struct {
@@ -334,6 +351,8 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/google/uuid"
+
 	"%s"
 )
 
@@ -346,21 +365,23 @@ func NewSQLite%sRepository(db *sql.DB) *SQLite%sRepository {
 }
 
 func (r *SQLite%sRepository) Create(ctx context.Context, entity *%s.%s) error {
-	_, err := r.db.ExecContext(ctx, "INSERT INTO %s (id) VALUES (?)", entity.ID)
+	_, err := r.db.ExecContext(ctx, "INSERT INTO %s (id, name) VALUES (?, ?)", entity.ID.String(), entity.Name)
 	return err
 }
 
-func (r *SQLite%sRepository) GetByID(ctx context.Context, id string) (*%s.%s, error) {
-	row := r.db.QueryRowContext(ctx, "SELECT id FROM %s WHERE id = ?", id)
+func (r *SQLite%sRepository) GetByID(ctx context.Context, id uuid.UUID) (*%s.%s, error) {
+	row := r.db.QueryRowContext(ctx, "SELECT id, name FROM %s WHERE id = ?", id.String())
 	var entity %s.%s
-	if err := row.Scan(&entity.ID); err != nil {
+	var idStr string
+	if err := row.Scan(&idStr, &entity.Name); err != nil {
 		return nil, err
 	}
+	entity.ID, _ = uuid.Parse(idStr)
 	return &entity, nil
 }
 
 func (r *SQLite%sRepository) List(ctx context.Context) ([]*%s.%s, error) {
-	rows, err := r.db.QueryContext(ctx, "SELECT id FROM %s")
+	rows, err := r.db.QueryContext(ctx, "SELECT id, name FROM %s")
 	if err != nil {
 		return nil, err
 	}
@@ -369,21 +390,23 @@ func (r *SQLite%sRepository) List(ctx context.Context) ([]*%s.%s, error) {
 	var entities []*%s.%s
 	for rows.Next() {
 		var entity %s.%s
-		if err := rows.Scan(&entity.ID); err != nil {
+		var idStr string
+		if err := rows.Scan(&idStr, &entity.Name); err != nil {
 			return nil, err
 		}
+		entity.ID, _ = uuid.Parse(idStr)
 		entities = append(entities, &entity)
 	}
 	return entities, rows.Err()
 }
 
 func (r *SQLite%sRepository) Update(ctx context.Context, entity *%s.%s) error {
-	_, err := r.db.ExecContext(ctx, "UPDATE %s SET id = ? WHERE id = ?", entity.ID, entity.ID)
+	_, err := r.db.ExecContext(ctx, "UPDATE %s SET name = ? WHERE id = ?", entity.Name, entity.ID.String())
 	return err
 }
 
-func (r *SQLite%sRepository) Delete(ctx context.Context, id string) error {
-	_, err := r.db.ExecContext(ctx, "DELETE FROM %s WHERE id = ?", id)
+func (r *SQLite%sRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM %s WHERE id = ?", id.String())
 	return err
 }
 `, name,
@@ -403,6 +426,8 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/google/uuid"
+
 	"%s"
 )
 
@@ -415,21 +440,21 @@ func NewPostgres%sRepository(db *sql.DB) *Postgres%sRepository {
 }
 
 func (r *Postgres%sRepository) Create(ctx context.Context, entity *%s.%s) error {
-	_, err := r.db.ExecContext(ctx, "INSERT INTO %s (id) VALUES ($1)", entity.ID)
+	_, err := r.db.ExecContext(ctx, "INSERT INTO %s (id, name) VALUES ($1, $2)", entity.ID, entity.Name)
 	return err
 }
 
-func (r *Postgres%sRepository) GetByID(ctx context.Context, id string) (*%s.%s, error) {
-	row := r.db.QueryRowContext(ctx, "SELECT id FROM %s WHERE id = $1", id)
+func (r *Postgres%sRepository) GetByID(ctx context.Context, id uuid.UUID) (*%s.%s, error) {
+	row := r.db.QueryRowContext(ctx, "SELECT id, name FROM %s WHERE id = $1", id)
 	var entity %s.%s
-	if err := row.Scan(&entity.ID); err != nil {
+	if err := row.Scan(&entity.ID, &entity.Name); err != nil {
 		return nil, err
 	}
 	return &entity, nil
 }
 
 func (r *Postgres%sRepository) List(ctx context.Context) ([]*%s.%s, error) {
-	rows, err := r.db.QueryContext(ctx, "SELECT id FROM %s")
+	rows, err := r.db.QueryContext(ctx, "SELECT id, name FROM %s")
 	if err != nil {
 		return nil, err
 	}
@@ -438,7 +463,7 @@ func (r *Postgres%sRepository) List(ctx context.Context) ([]*%s.%s, error) {
 	var entities []*%s.%s
 	for rows.Next() {
 		var entity %s.%s
-		if err := rows.Scan(&entity.ID); err != nil {
+		if err := rows.Scan(&entity.ID, &entity.Name); err != nil {
 			return nil, err
 		}
 		entities = append(entities, &entity)
@@ -447,11 +472,11 @@ func (r *Postgres%sRepository) List(ctx context.Context) ([]*%s.%s, error) {
 }
 
 func (r *Postgres%sRepository) Update(ctx context.Context, entity *%s.%s) error {
-	_, err := r.db.ExecContext(ctx, "UPDATE %s SET id = $1 WHERE id = $2", entity.ID, entity.ID)
+	_, err := r.db.ExecContext(ctx, "UPDATE %s SET name = $1 WHERE id = $2", entity.Name, entity.ID)
 	return err
 }
 
-func (r *Postgres%sRepository) Delete(ctx context.Context, id string) error {
+func (r *Postgres%sRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := r.db.ExecContext(ctx, "DELETE FROM %s WHERE id = $1", id)
 	return err
 }
@@ -471,9 +496,11 @@ func mongoRepositoryTemplate(name, namePascal string) string {
 import (
 	"context"
 
-	"%s"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+
+	"%s"
 )
 
 type Mongo%sRepository struct {
@@ -489,7 +516,7 @@ func (r *Mongo%sRepository) Create(ctx context.Context, entity *%s.%s) error {
 	return err
 }
 
-func (r *Mongo%sRepository) GetByID(ctx context.Context, id string) (*%s.%s, error) {
+func (r *Mongo%sRepository) GetByID(ctx context.Context, id uuid.UUID) (*%s.%s, error) {
 	var entity %s.%s
 	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&entity)
 	if err != nil {
@@ -517,7 +544,7 @@ func (r *Mongo%sRepository) Update(ctx context.Context, entity *%s.%s) error {
 	return err
 }
 
-func (r *Mongo%sRepository) Delete(ctx context.Context, id string) error {
+func (r *Mongo%sRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
 	return err
 }
