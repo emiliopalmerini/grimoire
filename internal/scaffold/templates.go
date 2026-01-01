@@ -6,19 +6,16 @@ func modelsTemplate(name, namePascal string) string {
 	return fmt.Sprintf(`package %s
 
 type %s struct {
-	ID string
+	ID   string
+	Name string
 }
-
-type Create%sRequest struct{}
-
-type Update%sRequest struct {
-	ID string
-}
-`, name, namePascal, namePascal, namePascal)
+`, name, namePascal)
 }
 
 func serviceTemplate(name, namePascal, moduleImportPath string) string {
 	return fmt.Sprintf(`package %s
+
+import "context"
 
 type Service struct {
 	repo %sRepository
@@ -27,7 +24,27 @@ type Service struct {
 func NewService(repo %sRepository) *Service {
 	return &Service{repo: repo}
 }
-`, name, namePascal, namePascal)
+
+func (s *Service) Create(ctx context.Context, entity *%s) error {
+	return s.repo.Create(ctx, entity)
+}
+
+func (s *Service) GetByID(ctx context.Context, id string) (*%s, error) {
+	return s.repo.GetByID(ctx, id)
+}
+
+func (s *Service) List(ctx context.Context) ([]*%s, error) {
+	return s.repo.List(ctx)
+}
+
+func (s *Service) Update(ctx context.Context, entity *%s) error {
+	return s.repo.Update(ctx, entity)
+}
+
+func (s *Service) Delete(ctx context.Context, id string) error {
+	return s.repo.Delete(ctx, id)
+}
+`, name, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
 }
 
 func repositoryInterfaceTemplate(name, namePascal string) string {
@@ -45,134 +62,148 @@ type %sRepository interface {
 `, name, namePascal, namePascal, namePascal, namePascal, namePascal)
 }
 
-func createCommandTemplate(name, namePascal string) string {
+func createCommandTemplate(name, namePascal, moduleImportPath string) string {
 	return fmt.Sprintf(`package commands
 
-import "context"
+import (
+	"context"
+
+	"%s"
+)
 
 type Create%sCommand struct {
-	// Add fields
+	Name string
 }
 
 type Create%sHandler struct {
-	// Add dependencies
+	service *%s.Service
 }
 
-func NewCreate%sHandler() *Create%sHandler {
-	return &Create%sHandler{}
+func NewCreate%sHandler(service *%s.Service) *Create%sHandler {
+	return &Create%sHandler{service: service}
 }
 
 func (h *Create%sHandler) Handle(ctx context.Context, cmd Create%sCommand) error {
-	return nil
+	entity := &%s.%s{
+		Name: cmd.Name,
+	}
+	return h.service.Create(ctx, entity)
 }
-`, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
+`, moduleImportPath, namePascal, namePascal, name, namePascal, name, namePascal, namePascal, namePascal, namePascal, name, namePascal)
 }
 
-func updateCommandTemplate(name, namePascal string) string {
+func updateCommandTemplate(name, namePascal, moduleImportPath string) string {
 	return fmt.Sprintf(`package commands
 
-import "context"
+import (
+	"context"
+
+	"%s"
+)
 
 type Update%sCommand struct {
-	ID string
-	// Add fields
+	ID   string
+	Name string
 }
 
 type Update%sHandler struct {
-	// Add dependencies
+	service *%s.Service
 }
 
-func NewUpdate%sHandler() *Update%sHandler {
-	return &Update%sHandler{}
+func NewUpdate%sHandler(service *%s.Service) *Update%sHandler {
+	return &Update%sHandler{service: service}
 }
 
 func (h *Update%sHandler) Handle(ctx context.Context, cmd Update%sCommand) error {
-	return nil
+	entity := &%s.%s{
+		ID:   cmd.ID,
+		Name: cmd.Name,
+	}
+	return h.service.Update(ctx, entity)
 }
-`, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
+`, moduleImportPath, namePascal, namePascal, name, namePascal, name, namePascal, namePascal, namePascal, namePascal, name, namePascal)
 }
 
-func deleteCommandTemplate(name, namePascal string) string {
+func deleteCommandTemplate(name, namePascal, moduleImportPath string) string {
 	return fmt.Sprintf(`package commands
 
-import "context"
+import (
+	"context"
+
+	"%s"
+)
 
 type Delete%sCommand struct {
 	ID string
 }
 
 type Delete%sHandler struct {
-	// Add dependencies
+	service *%s.Service
 }
 
-func NewDelete%sHandler() *Delete%sHandler {
-	return &Delete%sHandler{}
+func NewDelete%sHandler(service *%s.Service) *Delete%sHandler {
+	return &Delete%sHandler{service: service}
 }
 
 func (h *Delete%sHandler) Handle(ctx context.Context, cmd Delete%sCommand) error {
-	return nil
+	return h.service.Delete(ctx, cmd.ID)
 }
-`, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
+`, moduleImportPath, namePascal, namePascal, name, namePascal, name, namePascal, namePascal, namePascal, namePascal)
 }
 
-func getQueryTemplate(name, namePascal string) string {
+func getQueryTemplate(name, namePascal, moduleImportPath string) string {
 	return fmt.Sprintf(`package queries
 
-import "context"
+import (
+	"context"
+
+	"%s"
+)
 
 type Get%sQuery struct {
 	ID string
 }
 
-type Get%sResult struct {
-	// Add fields
-}
-
 type Get%sHandler struct {
-	// Add dependencies
+	service *%s.Service
 }
 
-func NewGet%sHandler() *Get%sHandler {
-	return &Get%sHandler{}
+func NewGet%sHandler(service *%s.Service) *Get%sHandler {
+	return &Get%sHandler{service: service}
 }
 
-func (h *Get%sHandler) Handle(ctx context.Context, query Get%sQuery) (*Get%sResult, error) {
-	return nil, nil
+func (h *Get%sHandler) Handle(ctx context.Context, query Get%sQuery) (*%s.%s, error) {
+	return h.service.GetByID(ctx, query.ID)
 }
-`, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
+`, moduleImportPath, namePascal, namePascal, name, namePascal, name, namePascal, namePascal, namePascal, namePascal, name, namePascal)
 }
 
-func listQueryTemplate(name, namePascal string) string {
+func listQueryTemplate(name, namePascal, moduleImportPath string) string {
 	return fmt.Sprintf(`package queries
 
-import "context"
+import (
+	"context"
+
+	"%s"
+)
 
 type List%sQuery struct {
 	Limit  int
 	Offset int
 }
 
-type List%sResult struct {
-	Items []%sItem
-	Total int
-}
-
-type %sItem struct {
-	// Add fields
-}
-
 type List%sHandler struct {
-	// Add dependencies
+	service *%s.Service
 }
 
-func NewList%sHandler() *List%sHandler {
-	return &List%sHandler{}
+func NewList%sHandler(service *%s.Service) *List%sHandler {
+	return &List%sHandler{service: service}
 }
 
-func (h *List%sHandler) Handle(ctx context.Context, query List%sQuery) (*List%sResult, error) {
-	return nil, nil
+func (h *List%sHandler) Handle(ctx context.Context, query List%sQuery) ([]*%s.%s, error) {
+	return h.service.List(ctx)
 }
-`, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal, namePascal)
+`, moduleImportPath, namePascal, namePascal, name, namePascal, name, namePascal, namePascal, namePascal, namePascal, name, namePascal)
 }
 
 func httpHandlerTemplate(name, namePascal, apiType string) string {

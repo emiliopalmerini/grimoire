@@ -132,11 +132,11 @@ func createFiles(moduleDir string, opts ModuleOptions, goModulePath string) erro
 	}
 
 	if opts.WithCRUD {
-		files[filepath.Join(moduleDir, "commands", fmt.Sprintf("create_%s.go", name))] = createCommandTemplate(name, namePascal)
-		files[filepath.Join(moduleDir, "commands", fmt.Sprintf("update_%s.go", name))] = updateCommandTemplate(name, namePascal)
-		files[filepath.Join(moduleDir, "commands", fmt.Sprintf("delete_%s.go", name))] = deleteCommandTemplate(name, namePascal)
-		files[filepath.Join(moduleDir, "queries", fmt.Sprintf("get_%s.go", name))] = getQueryTemplate(name, namePascal)
-		files[filepath.Join(moduleDir, "queries", fmt.Sprintf("list_%s.go", name))] = listQueryTemplate(name, namePascal)
+		files[filepath.Join(moduleDir, "commands", fmt.Sprintf("create_%s.go", name))] = createCommandTemplate(name, namePascal, moduleImportPath)
+		files[filepath.Join(moduleDir, "commands", fmt.Sprintf("update_%s.go", name))] = updateCommandTemplate(name, namePascal, moduleImportPath)
+		files[filepath.Join(moduleDir, "commands", fmt.Sprintf("delete_%s.go", name))] = deleteCommandTemplate(name, namePascal, moduleImportPath)
+		files[filepath.Join(moduleDir, "queries", fmt.Sprintf("get_%s.go", name))] = getQueryTemplate(name, namePascal, moduleImportPath)
+		files[filepath.Join(moduleDir, "queries", fmt.Sprintf("list_%s.go", name))] = listQueryTemplate(name, namePascal, moduleImportPath)
 	}
 
 	for _, transport := range opts.Transports {
