@@ -50,3 +50,21 @@ Supported formats (all read/write):
 | `--to, -t` | Output format (required) |
 | `--from, -f` | Input format (auto-detected from extension) |
 | `--output, -o` | Output file (default: stdout) |
+
+### mend
+
+Format files using LSP servers (organizes imports + formats):
+
+```bash
+grimoire mend file.go
+grimoire mend ./internal/...
+grimoire mend --check .
+grimoire mend --diff file.py
+```
+
+Supported: Go, Python, Rust, C#, TypeScript, JavaScript, HTML, JSON, YAML, Nix, Lua
+
+| Flag | Description |
+|------|-------------|
+| `--check, -c` | Check only, exit 1 if changes needed |
+| `--diff, -d` | Show diff of changes |

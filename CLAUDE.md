@@ -55,6 +55,19 @@ Generated structure includes:
 
 Must be run from a Go project root containing `internal/` and `go.mod`.
 
+### Mend (LSP Formatting)
+
+Formats files using LSP servers. Organizes imports and formats code.
+
+```bash
+grimoire mend file.go
+grimoire mend ./internal/...
+grimoire mend --check .
+grimoire mend --diff file.py
+```
+
+Supports: Go, Python, Rust, C#, TypeScript, JavaScript, HTML, JSON, YAML, Nix, Lua.
+
 ### Transmute (Format Conversion)
 
 Converts data between formats: JSON, YAML, TOML, XML, CSV, Markdown, HTML.
