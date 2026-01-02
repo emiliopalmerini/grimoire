@@ -15,9 +15,9 @@
         in {
           default = pkgs.buildGoModule {
             pname = "grimoire";
-            version = "0.1.0";
+            version = "0.2.0";
             src = ./.;
-            vendorHash = "sha256-7K17JaXFsjf163g5PXCb5ng2gYdotnZ2IDKk8KFjNj0=";
+            vendorHash = "sha256-Ia1+Xg3CT6xMNJEVCNB6orOC926/nM8dj/suAtlonRU=";
           };
         });
     };
