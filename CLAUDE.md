@@ -9,6 +9,14 @@ go build -o grimoire .
 ./grimoire [command]
 ```
 
+## Setup
+
+Enable git hooks for automatic vendorHash updates:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## Architecture
 
 Grimoire is a multi-tool CLI for developer productivity, built with Cobra.
@@ -19,6 +27,7 @@ Grimoire is a multi-tool CLI for developer productivity, built with Cobra.
   - `root.go` - Root command setup, registers all subcommands
   - `<command>/` - Each subcommand in its own package (e.g., `conjure/`)
 - `internal/` - Implementation logic for each command
+- `.githooks/` - Git hooks (pre-commit updates vendorHash when go.mod changes)
 
 ### Adding New Commands
 
@@ -27,9 +36,11 @@ Grimoire is a multi-tool CLI for developer productivity, built with Cobra.
 3. Register it in `cmd/root.go` via `rootCmd.AddCommand()`
 4. Place implementation logic in `internal/<feature>/`
 
-### Conjure Module (Scaffolding)
+## Commands
 
-The `conjure` command generates vertical slice modules with CQRS pattern:
+### Conjure (Scaffolding)
+
+Generates vertical slice modules with CQRS pattern:
 
 ```bash
 grimoire conjure user --transport=http,amqp --api=html --crud
@@ -43,3 +54,16 @@ Generated structure includes:
 - `views/` with HTMX templates when `--api=html`
 
 Must be run from a Go project root containing `internal/` and `go.mod`.
+
+### Transmute (Format Conversion)
+
+Converts data between formats: JSON, YAML, TOML, XML, CSV, Markdown, HTML.
+
+```bash
+grimoire transmute data.json --to yaml
+grimoire transmute config.xml --to json
+grimoire transmute users.json --to markdown
+cat data.json | grimoire transmute --from json --to xml
+```
+
+All formats support both reading and writing.
