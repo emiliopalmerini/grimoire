@@ -7,6 +7,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -74,6 +75,10 @@ func parse(input []byte, format string) (any, error) {
 		return parseCSV(input)
 	case "xml":
 		return parseXML(input)
+	case "html":
+		return parseHTML(input)
+	case "markdown":
+		return parseMarkdown(input)
 	default:
 		return nil, fmt.Errorf("unsupported input format: %s", format)
 	}
@@ -241,6 +246,271 @@ func nodeToMap(node *xmlNode) any {
 		}
 	}
 
+	return result
+}
+
+func parseHTML(input []byte) (any, error) {
+	content := string(input)
+
+	if table := parseHTMLTable(content); table != nil {
+		return table, nil
+	}
+
+	if list := parseHTMLList(content); list != nil {
+		return list, nil
+	}
+
+	if dl := parseHTMLDefinitionList(content); dl != nil {
+		return dl, nil
+	}
+
+	text := stripHTMLTags(content)
+	text = strings.TrimSpace(text)
+	if text != "" {
+		return map[string]any{"content": text}, nil
+	}
+
+	return map[string]any{}, nil
+}
+
+func parseHTMLTable(content string) []any {
+	tableRe := regexp.MustCompile(`(?is)<table[^>]*>(.*?)</table>`)
+	tableMatch := tableRe.FindStringSubmatch(content)
+	if tableMatch == nil {
+		return nil
+	}
+
+	tableContent := tableMatch[1]
+
+	var headers []string
+	headerRe := regexp.MustCompile(`(?is)<th[^>]*>(.*?)</th>`)
+	headerMatches := headerRe.FindAllStringSubmatch(tableContent, -1)
+	for _, m := range headerMatches {
+		headers = append(headers, strings.TrimSpace(stripHTMLTags(m[1])))
+	}
+
+	if len(headers) == 0 {
+		trRe := regexp.MustCompile(`(?is)<tr[^>]*>(.*?)</tr>`)
+		trMatches := trRe.FindAllStringSubmatch(tableContent, -1)
+		if len(trMatches) > 0 {
+			tdRe := regexp.MustCompile(`(?is)<td[^>]*>(.*?)</td>`)
+			firstRowCells := tdRe.FindAllStringSubmatch(trMatches[0][1], -1)
+			for _, cell := range firstRowCells {
+				headers = append(headers, strings.TrimSpace(stripHTMLTags(cell[1])))
+			}
+		}
+	}
+
+	if len(headers) == 0 {
+		return nil
+	}
+
+	var result []any
+	rowRe := regexp.MustCompile(`(?is)<tr[^>]*>(.*?)</tr>`)
+	cellRe := regexp.MustCompile(`(?is)<td[^>]*>(.*?)</td>`)
+
+	rows := rowRe.FindAllStringSubmatch(tableContent, -1)
+	startIdx := 0
+	if len(headerMatches) == 0 && len(rows) > 0 {
+		startIdx = 1
+	}
+
+	for i := startIdx; i < len(rows); i++ {
+		cells := cellRe.FindAllStringSubmatch(rows[i][1], -1)
+		if len(cells) == 0 {
+			continue
+		}
+		obj := make(map[string]any)
+		for j, cell := range cells {
+			if j < len(headers) {
+				obj[headers[j]] = strings.TrimSpace(stripHTMLTags(cell[1]))
+			}
+		}
+		if len(obj) > 0 {
+			result = append(result, obj)
+		}
+	}
+
+	return result
+}
+
+func parseHTMLList(content string) []any {
+	listRe := regexp.MustCompile(`(?is)<[uo]l[^>]*>(.*?)</[uo]l>`)
+	listMatch := listRe.FindStringSubmatch(content)
+	if listMatch == nil {
+		return nil
+	}
+
+	var result []any
+	itemRe := regexp.MustCompile(`(?is)<li[^>]*>(.*?)</li>`)
+	items := itemRe.FindAllStringSubmatch(listMatch[1], -1)
+	for _, item := range items {
+		text := strings.TrimSpace(stripHTMLTags(item[1]))
+		if text != "" {
+			result = append(result, text)
+		}
+	}
+
+	return result
+}
+
+func parseHTMLDefinitionList(content string) map[string]any {
+	dlRe := regexp.MustCompile(`(?is)<dl[^>]*>(.*?)</dl>`)
+	dlMatch := dlRe.FindStringSubmatch(content)
+	if dlMatch == nil {
+		return nil
+	}
+
+	result := make(map[string]any)
+	dtRe := regexp.MustCompile(`(?is)<dt[^>]*>(.*?)</dt>\s*<dd[^>]*>(.*?)</dd>`)
+	pairs := dtRe.FindAllStringSubmatch(dlMatch[1], -1)
+	for _, pair := range pairs {
+		key := strings.TrimSpace(stripHTMLTags(pair[1]))
+		value := strings.TrimSpace(stripHTMLTags(pair[2]))
+		if key != "" {
+			result[key] = value
+		}
+	}
+
+	return result
+}
+
+func stripHTMLTags(s string) string {
+	tagRe := regexp.MustCompile(`<[^>]*>`)
+	result := tagRe.ReplaceAllString(s, "")
+	result = strings.ReplaceAll(result, "&amp;", "&")
+	result = strings.ReplaceAll(result, "&lt;", "<")
+	result = strings.ReplaceAll(result, "&gt;", ">")
+	result = strings.ReplaceAll(result, "&quot;", "\"")
+	result = strings.ReplaceAll(result, "&#39;", "'")
+	result = strings.ReplaceAll(result, "&apos;", "'")
+	return result
+}
+
+func parseMarkdown(input []byte) (any, error) {
+	content := string(input)
+
+	if table := parseMarkdownTable(content); table != nil {
+		return table, nil
+	}
+
+	if list := parseMarkdownList(content); list != nil {
+		return list, nil
+	}
+
+	if kv := parseMarkdownKeyValue(content); kv != nil {
+		return kv, nil
+	}
+
+	text := strings.TrimSpace(content)
+	if text != "" {
+		return map[string]any{"content": text}, nil
+	}
+
+	return map[string]any{}, nil
+}
+
+func parseMarkdownTable(content string) []any {
+	lines := strings.Split(content, "\n")
+	var tableLines []string
+	inTable := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "|") && strings.HasSuffix(trimmed, "|") {
+			inTable = true
+			tableLines = append(tableLines, trimmed)
+		} else if inTable {
+			break
+		}
+	}
+
+	if len(tableLines) < 2 {
+		return nil
+	}
+
+	headerLine := tableLines[0]
+	headers := parseMarkdownTableRow(headerLine)
+	if len(headers) == 0 {
+		return nil
+	}
+
+	startIdx := 1
+	if len(tableLines) > 1 {
+		sepLine := tableLines[1]
+		if strings.Contains(sepLine, "---") || strings.Contains(sepLine, ":-") {
+			startIdx = 2
+		}
+	}
+
+	var result []any
+	for i := startIdx; i < len(tableLines); i++ {
+		cells := parseMarkdownTableRow(tableLines[i])
+		obj := make(map[string]any)
+		for j, cell := range cells {
+			if j < len(headers) {
+				obj[headers[j]] = cell
+			}
+		}
+		if len(obj) > 0 {
+			result = append(result, obj)
+		}
+	}
+
+	return result
+}
+
+func parseMarkdownTableRow(line string) []string {
+	line = strings.Trim(line, "|")
+	parts := strings.Split(line, "|")
+	var result []string
+	for _, p := range parts {
+		result = append(result, strings.TrimSpace(p))
+	}
+	return result
+}
+
+func parseMarkdownList(content string) []any {
+	lines := strings.Split(content, "\n")
+	var result []any
+	listRe := regexp.MustCompile(`^\s*[-*+]\s+(.+)$`)
+	numListRe := regexp.MustCompile(`^\s*\d+\.\s+(.+)$`)
+
+	for _, line := range lines {
+		if m := listRe.FindStringSubmatch(line); m != nil {
+			result = append(result, strings.TrimSpace(m[1]))
+		} else if m := numListRe.FindStringSubmatch(line); m != nil {
+			result = append(result, strings.TrimSpace(m[1]))
+		}
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+func parseMarkdownKeyValue(content string) map[string]any {
+	lines := strings.Split(content, "\n")
+	result := make(map[string]any)
+	kvRe := regexp.MustCompile(`^\*\*(.+?)\*\*:\s*(.+)$`)
+	colonRe := regexp.MustCompile(`^([^:]+):\s+(.+)$`)
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if m := kvRe.FindStringSubmatch(line); m != nil {
+			result[strings.TrimSpace(m[1])] = strings.TrimSpace(m[2])
+		} else if m := colonRe.FindStringSubmatch(line); m != nil {
+			key := strings.TrimSpace(m[1])
+			if !strings.HasPrefix(key, "#") && !strings.HasPrefix(key, "-") {
+				result[key] = strings.TrimSpace(m[2])
+			}
+		}
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
 	return result
 }
 
