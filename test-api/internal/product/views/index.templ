@@ -1,0 +1,57 @@
+package views
+
+templ Index(items []Product) {
+	<div id="product-list">
+		<h1>Product List</h1>
+
+		<table>
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Name</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, item := range items {
+					<tr>
+						<td>{ item.ID.String() }</td>
+						<td>{ item.Name }</td>
+						<td>
+							<button
+								hx-get={ fmt.Sprintf("/product/%s/edit", item.ID) }
+								hx-target="#product-form"
+								hx-swap="innerHTML"
+							>
+								Edit
+							</button>
+							<button
+								hx-delete={ fmt.Sprintf("/product/%s", item.ID) }
+								hx-target="closest tr"
+								hx-swap="outerHTML"
+								hx-confirm="Are you sure?"
+							>
+								Delete
+							</button>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+
+		<button
+			hx-get="/product/new"
+			hx-target="#product-form"
+			hx-swap="innerHTML"
+		>
+			New Product
+		</button>
+
+		<div id="product-form"></div>
+	</div>
+}
+
+type Product struct {
+	ID   interface{ String() string }
+	Name string
+}

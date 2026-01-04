@@ -2,11 +2,40 @@ package initializer
 
 import "fmt"
 
-func goModTemplate(modulePath, goVersion string) string {
+func goModTemplate(modulePath, goVersion string, opts ProjectOptions) string {
+	deps := `
+require (
+	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/google/uuid v1.6.0
+`
+	if hasTransport(opts.Transports, "http") {
+		deps += `	github.com/go-chi/chi/v5 v5.1.0
+`
+	}
+
+	if opts.Type == "web" {
+		deps += `	github.com/alexedwards/scs/v2 v2.8.0
+`
+	}
+
+	if hasTransport(opts.Transports, "grpc") {
+		deps += `	google.golang.org/grpc v1.68.0
+	google.golang.org/protobuf v1.35.2
+`
+	}
+
+	if hasTransport(opts.Transports, "amqp") {
+		deps += `	github.com/rabbitmq/amqp091-go v1.10.0
+`
+	}
+
+	deps += ")"
+
 	return fmt.Sprintf(`module %s
 
 go %s
-`, modulePath, goVersion)
+%s
+`, modulePath, goVersion, deps)
 }
 
 func gitignoreTemplate() string {
