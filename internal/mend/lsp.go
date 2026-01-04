@@ -217,8 +217,8 @@ type Position struct {
 }
 
 type CodeAction struct {
-	Title string        `json:"title"`
-	Kind  string        `json:"kind"`
+	Title string         `json:"title"`
+	Kind  string         `json:"kind"`
 	Edit  *WorkspaceEdit `json:"edit,omitempty"`
 }
 

@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
-	"net"
 
 	"github.com/test/grpc/internal/app"
 	"github.com/test/grpc/internal/server"

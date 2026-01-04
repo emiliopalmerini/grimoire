@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"log"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"net/http"
-	"net"
 
 	"github.com/test/hybrid/internal/app"
 	"github.com/test/hybrid/internal/server"
