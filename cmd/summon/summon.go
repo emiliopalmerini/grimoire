@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	modulePath string
-	goVersion  string
+	modulePath  string
+	goVersion   string
 	projectType string
 	transports  []string
 )

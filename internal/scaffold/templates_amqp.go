@@ -87,7 +87,7 @@ func (c *Consumer) handleUpdate(ctx context.Context, body []byte) error {
 }
 
 type deleteMessage struct {
-	ID string ` + "`json:\"id\"`" + `
+	ID string `+"`json:\"id\"`"+`
 }
 
 func (c *Consumer) handleDelete(ctx context.Context, body []byte) error {

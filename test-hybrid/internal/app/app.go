@@ -9,8 +9,8 @@ import (
 type Config struct {
 	Addr            string        `envconfig:"ADDR" default:":8080"`
 	ShutdownTimeout time.Duration `envconfig:"SHUTDOWN_TIMEOUT" default:"5s"`
-	GRPCAddr string `envconfig:"GRPC_ADDR" default:":9090"`
-	AMQPURL string `envconfig:"AMQP_URL" default:"amqp://guest:guest@localhost:5672/"`
+	GRPCAddr        string        `envconfig:"GRPC_ADDR" default:":9090"`
+	AMQPURL         string        `envconfig:"AMQP_URL" default:"amqp://guest:guest@localhost:5672/"`
 }
 
 func New() (*Config, error) {

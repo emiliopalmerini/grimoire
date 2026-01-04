@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"net/http"
 
 	"github.com/test/api/internal/app"
 	"github.com/test/api/internal/server"

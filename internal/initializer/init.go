@@ -62,12 +62,12 @@ func createDirectories(projectDir string, opts ProjectOptions) error {
 
 func createFiles(projectDir string, opts ProjectOptions) error {
 	files := map[string]string{
-		filepath.Join(projectDir, "go.mod"):                     goModTemplate(opts.ModulePath, opts.GoVersion, opts),
-		filepath.Join(projectDir, "cmd", "main.go"):             mainTemplate(opts.ModulePath, opts),
-		filepath.Join(projectDir, "internal", "app", "app.go"):  appTemplate(opts),
+		filepath.Join(projectDir, "go.mod"):                          goModTemplate(opts.ModulePath, opts.GoVersion, opts),
+		filepath.Join(projectDir, "cmd", "main.go"):                  mainTemplate(opts.ModulePath, opts),
+		filepath.Join(projectDir, "internal", "app", "app.go"):       appTemplate(opts),
 		filepath.Join(projectDir, "internal", "server", "health.go"): healthTemplate(),
-		filepath.Join(projectDir, "flake.nix"):                  flakeTemplate(opts.GoVersion, opts),
-		filepath.Join(projectDir, ".gitignore"):                 gitignoreTemplate(),
+		filepath.Join(projectDir, "flake.nix"):                       flakeTemplate(opts.GoVersion, opts),
+		filepath.Join(projectDir, ".gitignore"):                      gitignoreTemplate(),
 	}
 
 	if hasTransport(opts.Transports, "http") {

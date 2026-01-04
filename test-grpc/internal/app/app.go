@@ -9,7 +9,7 @@ import (
 type Config struct {
 	Addr            string        `envconfig:"ADDR" default:":8080"`
 	ShutdownTimeout time.Duration `envconfig:"SHUTDOWN_TIMEOUT" default:"5s"`
-	GRPCAddr string `envconfig:"GRPC_ADDR" default:":9090"`
+	GRPCAddr        string        `envconfig:"GRPC_ADDR" default:":9090"`
 }
 
 func New() (*Config, error) {
