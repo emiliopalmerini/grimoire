@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -12,7 +13,6 @@ type ModuleOptions struct {
 	Name        string
 	Transports  []string
 	APIType     string
-	WithCRUD    bool
 	Persistence string
 }
 
@@ -87,17 +87,14 @@ func createDirectories(moduleDir string, opts ModuleOptions) error {
 		dirs = append(dirs, filepath.Join(moduleDir, "persistence"))
 	}
 
-	if opts.WithCRUD {
-		dirs = append(dirs, filepath.Join(moduleDir, "commands"))
-		dirs = append(dirs, filepath.Join(moduleDir, "queries"))
-	}
-
-	for _, transport := range opts.Transports {
-		dirs = append(dirs, filepath.Join(moduleDir, "transport", transport))
-	}
-
 	if opts.APIType == "html" {
 		dirs = append(dirs, filepath.Join(moduleDir, "views"))
+	}
+
+	if hasTransport(opts.Transports, "grpc") {
+		// Proto files go in api/proto/v1 at project root
+		cwd, _ := os.Getwd()
+		dirs = append(dirs, filepath.Join(cwd, "api", "proto", "v1"))
 	}
 
 	for _, dir := range dirs {
@@ -123,35 +120,33 @@ func createFiles(moduleDir string, opts ModuleOptions, goModulePath string) erro
 	if opts.Persistence != "" {
 		switch opts.Persistence {
 		case "sqlite":
-			files[filepath.Join(moduleDir, "persistence", "sqlite_repository.go")] = sqliteRepositoryTemplate(name, namePascal)
+			files[filepath.Join(moduleDir, "persistence", "sqlite.go")] = sqliteRepositoryTemplate(name, namePascal, moduleImportPath)
 		case "postgres":
-			files[filepath.Join(moduleDir, "persistence", "postgres_repository.go")] = postgresRepositoryTemplate(name, namePascal)
+			files[filepath.Join(moduleDir, "persistence", "postgres.go")] = postgresRepositoryTemplate(name, namePascal, moduleImportPath)
 		case "mongodb":
-			files[filepath.Join(moduleDir, "persistence", "mongo_repository.go")] = mongoRepositoryTemplate(name, namePascal)
+			files[filepath.Join(moduleDir, "persistence", "mongo.go")] = mongoRepositoryTemplate(name, namePascal, moduleImportPath)
 		}
 	}
 
-	if opts.WithCRUD {
-		files[filepath.Join(moduleDir, "commands", fmt.Sprintf("create_%s.go", name))] = createCommandTemplate(name, namePascal, moduleImportPath)
-		files[filepath.Join(moduleDir, "commands", fmt.Sprintf("update_%s.go", name))] = updateCommandTemplate(name, namePascal, moduleImportPath)
-		files[filepath.Join(moduleDir, "commands", fmt.Sprintf("delete_%s.go", name))] = deleteCommandTemplate(name, namePascal, moduleImportPath)
-		files[filepath.Join(moduleDir, "queries", fmt.Sprintf("get_%s.go", name))] = getQueryTemplate(name, namePascal, moduleImportPath)
-		files[filepath.Join(moduleDir, "queries", fmt.Sprintf("list_%s.go", name))] = listQueryTemplate(name, namePascal, moduleImportPath)
+	if hasTransport(opts.Transports, "http") {
+		files[filepath.Join(moduleDir, "handler.go")] = httpHandlerTemplate(name, namePascal, moduleImportPath)
+		files[filepath.Join(moduleDir, "routes.go")] = httpRoutesTemplate(name)
 	}
 
-	for _, transport := range opts.Transports {
-		switch transport {
-		case "http":
-			files[filepath.Join(moduleDir, "transport", "http", "handler.go")] = httpHandlerTemplate(namePascal, moduleImportPath)
-			files[filepath.Join(moduleDir, "transport", "http", "routes.go")] = httpRoutesTemplate(name)
-		case "amqp":
-			files[filepath.Join(moduleDir, "transport", "amqp", "consumer.go")] = amqpConsumerTemplate(name, namePascal, moduleImportPath)
-		}
+	if hasTransport(opts.Transports, "grpc") {
+		files[filepath.Join(moduleDir, "grpc_server.go")] = grpcServerTemplate(name, namePascal, goModulePath)
+		// Proto file at project root
+		cwd, _ := os.Getwd()
+		files[filepath.Join(cwd, "api", "proto", "v1", name+".proto")] = protoTemplate(name, namePascal, goModulePath)
+	}
+
+	if hasTransport(opts.Transports, "amqp") {
+		files[filepath.Join(moduleDir, "consumer.go")] = amqpConsumerTemplate(name, namePascal, moduleImportPath)
 	}
 
 	if opts.APIType == "html" {
-		files[filepath.Join(moduleDir, "views", "index.html")] = indexViewTemplate(name, namePascal)
-		files[filepath.Join(moduleDir, "views", "form.html")] = formViewTemplate(name, namePascal)
+		files[filepath.Join(moduleDir, "views", "index.templ")] = indexTemplTemplate(name, namePascal)
+		files[filepath.Join(moduleDir, "views", "form.templ")] = formTemplTemplate(name, namePascal)
 	}
 
 	for path, content := range files {
@@ -171,4 +166,8 @@ func toPascalCase(s string) string {
 		}
 	}
 	return strings.Join(parts, "")
+}
+
+func hasTransport(transports []string, t string) bool {
+	return slices.Contains(transports, t)
 }

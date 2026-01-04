@@ -38,20 +38,36 @@ Grimoire is a multi-tool CLI for developer productivity, built with Cobra.
 
 ## Commands
 
-### Conjure (Scaffolding)
+### Summon (Project Initialization)
+
+Creates a new Go project with standard structure:
+
+```bash
+grimoire summon myapp
+grimoire summon myapi --type=api
+grimoire summon mysite --type=web
+grimoire summon myservice --type=grpc
+grimoire summon hybrid --type=api --transport=http,grpc
+```
+
+Project types: `api` (default), `web` (sessions, CSRF, templ), `grpc`.
+
+### Conjure (Module Scaffolding)
 
 Generates vertical slice modules with CQRS pattern:
 
 ```bash
-grimoire conjure user --transport=http,amqp --api=html --crud
-grimoire conjure order --transport=http --api=json
+grimoire conjure user
+grimoire conjure user --transport=http,grpc
+grimoire conjure user --api=html --persistence=postgres
+grimoire conjure order --transport=http,amqp
 ```
 
 Generated structure includes:
 - `commands/` and `queries/` with handler structs
-- `transport/http/` with chi router setup, `transport/amqp/` for consumers
+- `transport/http/` with chi router, `transport/grpc/` for gRPC, `transport/amqp/` for consumers
 - `persistence/` with repository interface
-- `views/` with HTMX templates when `--api=html`
+- `views/` with templ templates when `--api=html`
 
 Must be run from a Go project root containing `internal/` and `go.mod`.
 
