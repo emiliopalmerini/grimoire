@@ -39,8 +39,13 @@ func runModifyMemory(cmd *cobra.Command, args []string) error {
 
 	history, _ := memory.GetRecentCommits(10)
 
+	description, err := memory.AskDescription()
+	if err != nil {
+		return err
+	}
+
 	fmt.Println("Generating commit message...")
-	message, err := memory.GenerateMessage(diff, history)
+	message, err := memory.GenerateMessage(diff, history, description)
 	if err != nil {
 		return err
 	}

@@ -56,22 +56,41 @@ func GetRecentCommits(n int) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-func GenerateMessage(diff string, history string) (string, error) {
-	prompt := `Analyze this git diff and generate a conventional commit message.
+func AskDescription() (string, error) {
+	fmt.Print("What's the motivation for this change? (optional): ")
+	reader := bufio.NewReader(os.Stdin)
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(input), nil
+}
+
+func GenerateMessage(diff string, history string, description string) (string, error) {
+	prompt := `Analyze this git diff and generate a conventional commit message with title and body.
 
 Rules:
-- Use conventional commits format: type(scope): description
+- Use conventional commits format for the title: type(scope): description
 - Types: feat, fix, docs, style, refactor, test, chore
-- Keep the subject line under 50 characters
+- Keep the title under 50 characters
+- Add a blank line after the title
+- Write a concise body explaining what changed and why
 - Focus on the "why" not the "what"
 - Do not use emojis
-- Output ONLY the commit message, nothing else
+- Output ONLY the commit message (title + body), nothing else
 `
 
 	if history != "" {
 		prompt += `
 Recent commits (match this style):
 ` + history + `
+`
+	}
+
+	if description != "" {
+		prompt += `
+User motivation:
+` + description + `
 `
 	}
 
