@@ -36,7 +36,7 @@ func TestCreateModule(t *testing.T) {
 
 	goMod := `module github.com/test/project
 
-go 1.21
+go 1.25
 `
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644); err != nil {
 		t.Fatalf("failed to create go.mod: %v", err)
@@ -50,38 +50,18 @@ go 1.21
 		Name:       "user",
 		Transports: []string{"http"},
 		APIType:    "json",
-		WithCRUD:   true,
 	}
 
 	if err := CreateModule(opts); err != nil {
 		t.Fatalf("CreateModule failed: %v", err)
 	}
 
-	expectedDirs := []string{
-		"internal/user",
-		"internal/user/commands",
-		"internal/user/queries",
-		"internal/user/transport/http",
-	}
-
-	for _, dir := range expectedDirs {
-		path := filepath.Join(tmpDir, dir)
-		if _, err := os.Stat(path); os.IsNotExist(err) {
-			t.Errorf("expected directory %s to exist", dir)
-		}
-	}
-
 	expectedFiles := []string{
 		"internal/user/models.go",
 		"internal/user/service.go",
 		"internal/user/repository.go",
-		"internal/user/commands/create_user.go",
-		"internal/user/commands/update_user.go",
-		"internal/user/commands/delete_user.go",
-		"internal/user/queries/get_user.go",
-		"internal/user/queries/list_user.go",
-		"internal/user/transport/http/handler.go",
-		"internal/user/transport/http/routes.go",
+		"internal/user/handler.go",
+		"internal/user/routes.go",
 	}
 
 	for _, file := range expectedFiles {
@@ -101,7 +81,7 @@ func TestCreateModuleWithHTML(t *testing.T) {
 
 	goMod := `module github.com/test/project
 
-go 1.21
+go 1.25
 `
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644); err != nil {
 		t.Fatalf("failed to create go.mod: %v", err)
@@ -115,7 +95,6 @@ go 1.21
 		Name:       "product",
 		Transports: []string{"http"},
 		APIType:    "html",
-		WithCRUD:   true,
 	}
 
 	if err := CreateModule(opts); err != nil {
@@ -123,8 +102,8 @@ go 1.21
 	}
 
 	expectedFiles := []string{
-		"internal/product/views/index.html",
-		"internal/product/views/form.html",
+		"internal/product/views/index.templ",
+		"internal/product/views/form.templ",
 	}
 
 	for _, file := range expectedFiles {
@@ -144,7 +123,7 @@ func TestCreateModuleWithAMQP(t *testing.T) {
 
 	goMod := `module github.com/test/project
 
-go 1.21
+go 1.25
 `
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644); err != nil {
 		t.Fatalf("failed to create go.mod: %v", err)
@@ -158,7 +137,6 @@ go 1.21
 		Name:       "order",
 		Transports: []string{"http", "amqp"},
 		APIType:    "json",
-		WithCRUD:   false,
 	}
 
 	if err := CreateModule(opts); err != nil {
@@ -166,26 +144,14 @@ go 1.21
 	}
 
 	expectedFiles := []string{
-		"internal/order/transport/http/handler.go",
-		"internal/order/transport/amqp/consumer.go",
+		"internal/order/handler.go",
+		"internal/order/consumer.go",
 	}
 
 	for _, file := range expectedFiles {
 		path := filepath.Join(tmpDir, file)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			t.Errorf("expected file %s to exist", file)
-		}
-	}
-
-	unexpectedDirs := []string{
-		"internal/order/commands",
-		"internal/order/queries",
-	}
-
-	for _, dir := range unexpectedDirs {
-		path := filepath.Join(tmpDir, dir)
-		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			t.Errorf("expected directory %s to not exist when WithCRUD=false", dir)
 		}
 	}
 }
@@ -201,7 +167,6 @@ func TestCreateModuleNoInternalDir(t *testing.T) {
 		Name:       "user",
 		Transports: []string{"http"},
 		APIType:    "json",
-		WithCRUD:   true,
 	}
 
 	err := CreateModule(opts)
@@ -225,7 +190,6 @@ func TestCreateModuleNoGoMod(t *testing.T) {
 		Name:       "user",
 		Transports: []string{"http"},
 		APIType:    "json",
-		WithCRUD:   true,
 	}
 
 	err := CreateModule(opts)
@@ -243,7 +207,7 @@ func TestCreateModuleWithSQLite(t *testing.T) {
 
 	goMod := `module github.com/test/project
 
-go 1.21
+go 1.25
 `
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644); err != nil {
 		t.Fatalf("failed to create go.mod: %v", err)
@@ -257,7 +221,6 @@ go 1.21
 		Name:        "user",
 		Transports:  []string{"http"},
 		APIType:     "json",
-		WithCRUD:    true,
 		Persistence: "sqlite",
 	}
 
@@ -267,7 +230,7 @@ go 1.21
 
 	expectedFiles := []string{
 		"internal/user/repository.go",
-		"internal/user/persistence/sqlite_repository.go",
+		"internal/user/persistence/sqlite.go",
 	}
 
 	for _, file := range expectedFiles {
@@ -287,7 +250,7 @@ func TestCreateModuleWithPostgres(t *testing.T) {
 
 	goMod := `module github.com/test/project
 
-go 1.21
+go 1.25
 `
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644); err != nil {
 		t.Fatalf("failed to create go.mod: %v", err)
@@ -301,7 +264,6 @@ go 1.21
 		Name:        "user",
 		Transports:  []string{"http"},
 		APIType:     "json",
-		WithCRUD:    true,
 		Persistence: "postgres",
 	}
 
@@ -311,7 +273,7 @@ go 1.21
 
 	expectedFiles := []string{
 		"internal/user/repository.go",
-		"internal/user/persistence/postgres_repository.go",
+		"internal/user/persistence/postgres.go",
 	}
 
 	for _, file := range expectedFiles {
@@ -331,7 +293,7 @@ func TestCreateModuleWithMongoDB(t *testing.T) {
 
 	goMod := `module github.com/test/project
 
-go 1.21
+go 1.25
 `
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644); err != nil {
 		t.Fatalf("failed to create go.mod: %v", err)
@@ -345,7 +307,6 @@ go 1.21
 		Name:        "user",
 		Transports:  []string{"http"},
 		APIType:     "json",
-		WithCRUD:    true,
 		Persistence: "mongodb",
 	}
 
@@ -355,7 +316,49 @@ go 1.21
 
 	expectedFiles := []string{
 		"internal/user/repository.go",
-		"internal/user/persistence/mongo_repository.go",
+		"internal/user/persistence/mongo.go",
+	}
+
+	for _, file := range expectedFiles {
+		path := filepath.Join(tmpDir, file)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("expected file %s to exist", file)
+		}
+	}
+}
+
+func TestCreateModuleWithGRPC(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	if err := os.MkdirAll(filepath.Join(tmpDir, "internal"), 0755); err != nil {
+		t.Fatalf("failed to create internal dir: %v", err)
+	}
+
+	goMod := `module github.com/test/project
+
+go 1.25
+`
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644); err != nil {
+		t.Fatalf("failed to create go.mod: %v", err)
+	}
+
+	originalWd, _ := os.Getwd()
+	defer os.Chdir(originalWd)
+	os.Chdir(tmpDir)
+
+	opts := ModuleOptions{
+		Name:       "user",
+		Transports: []string{"grpc"},
+		APIType:    "json",
+	}
+
+	if err := CreateModule(opts); err != nil {
+		t.Fatalf("CreateModule failed: %v", err)
+	}
+
+	expectedFiles := []string{
+		"internal/user/grpc_server.go",
+		"api/proto/v1/user.proto",
 	}
 
 	for _, file := range expectedFiles {

@@ -10,7 +10,6 @@ import (
 var (
 	transports  []string
 	apiType     string
-	withCRUD    bool
 	persistence string
 )
 
@@ -19,13 +18,18 @@ var Cmd = &cobra.Command{
 	Short: "Conjure a new vertical slice module",
 	Long: `Conjure summons a new module with the vertical slice architecture structure.
 
-This incantation creates the full directory structure with commands, queries,
-transport layers, and persistence scaffolding.
+This incantation creates a module with service, repository, and transport layers.
+
+Transports:
+  http  - HTTP handlers with chi router (default)
+  grpc  - gRPC service implementation
+  amqp  - RabbitMQ consumer
 
 Examples:
-  grimoire conjure user --transport=http,amqp --api=html --crud
-  grimoire conjure order --transport=http --api=json
-  grimoire conjure product --persistence=postgres`,
+  grimoire conjure user
+  grimoire conjure user --transport=http,grpc
+  grimoire conjure user --api=html --persistence=postgres
+  grimoire conjure order --transport=http,amqp`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
@@ -34,7 +38,6 @@ Examples:
 			Name:        name,
 			Transports:  transports,
 			APIType:     apiType,
-			WithCRUD:    withCRUD,
 			Persistence: persistence,
 		}
 
@@ -48,8 +51,7 @@ Examples:
 }
 
 func init() {
-	Cmd.Flags().StringSliceVarP(&transports, "transport", "t", []string{"http"}, "Transport layers (http, amqp)")
-	Cmd.Flags().StringVarP(&apiType, "api", "a", "json", "API type (json, html)")
-	Cmd.Flags().BoolVarP(&withCRUD, "crud", "c", true, "Generate CRUD commands and queries")
-	Cmd.Flags().StringVarP(&persistence, "persistence", "p", "", "Persistence layer (sqlite, postgres, mongodb)")
+	Cmd.Flags().StringSliceVarP(&transports, "transport", "T", []string{"http"}, "Transports: http, grpc, amqp")
+	Cmd.Flags().StringVarP(&apiType, "api", "a", "json", "API type: json, html")
+	Cmd.Flags().StringVarP(&persistence, "persistence", "p", "", "Persistence: sqlite, postgres, mongodb")
 }
