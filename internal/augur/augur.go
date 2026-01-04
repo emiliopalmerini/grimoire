@@ -86,7 +86,7 @@ Exit code: %d
 		prompt += "Current changes:\n" + diff
 	}
 
-	cmd := exec.Command("claude", "-p", prompt)
+	cmd := exec.Command("claude", "-p", "--model", "sonnet", prompt)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
