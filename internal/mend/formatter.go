@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/emiliopalmerini/grimoire/internal/lsp"
 )
 
 type Options struct {
@@ -27,7 +29,7 @@ func FormatFile(ctx context.Context, path string, opts Options) (*Result, error)
 		return nil, fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
-	lang := DetectLanguage(path)
+	lang := lsp.DetectLanguage(path)
 	if lang == nil {
 		return nil, fmt.Errorf("unsupported file type: %s", filepath.Ext(path))
 	}
@@ -45,7 +47,7 @@ func FormatFile(ctx context.Context, path string, opts Options) (*Result, error)
 	uri := "file://" + absPath
 	rootDir := filepath.Dir(absPath)
 
-	client, err := NewLSPClient(lang)
+	client, err := lsp.NewClient(lang)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start LSP client: %w", err)
 	}
@@ -98,7 +100,7 @@ func FormatFile(ctx context.Context, path string, opts Options) (*Result, error)
 	return result, nil
 }
 
-func ApplyEdits(content string, edits []TextEdit) string {
+func ApplyEdits(content string, edits []lsp.TextEdit) string {
 	lines := strings.Split(content, "\n")
 
 	sort.Slice(edits, func(i, j int) bool {
@@ -115,7 +117,7 @@ func ApplyEdits(content string, edits []TextEdit) string {
 	return strings.Join(lines, "\n")
 }
 
-func applyEdit(lines []string, edit TextEdit) []string {
+func applyEdit(lines []string, edit lsp.TextEdit) []string {
 	startLine := edit.Range.Start.Line
 	startChar := edit.Range.Start.Character
 	endLine := edit.Range.End.Line

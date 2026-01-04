@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/emiliopalmerini/grimoire/internal/mend"
+	"github.com/emiliopalmerini/grimoire/internal/lsp"
 )
 
 func ReadFile(path string) (string, error) {
@@ -21,12 +21,12 @@ func ReadFile(path string) (string, error) {
 }
 
 func GetLSPContext(path string, content string) string {
-	lang := mend.DetectLanguage(path)
+	lang := lsp.DetectLanguage(path)
 	if lang == nil || !lang.Available() {
 		return ""
 	}
 
-	client, err := mend.NewLSPClient(lang)
+	client, err := lsp.NewClient(lang)
 	if err != nil {
 		return ""
 	}

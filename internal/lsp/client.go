@@ -1,4 +1,4 @@
-package mend
+package lsp
 
 import (
 	"bufio"
@@ -15,7 +15,7 @@ import (
 	"sync/atomic"
 )
 
-type LSPClient struct {
+type Client struct {
 	cmd    *exec.Cmd
 	stdin  io.WriteCloser
 	stdout *bufio.Reader
@@ -42,7 +42,7 @@ type jsonrpcError struct {
 	Message string `json:"message"`
 }
 
-func NewLSPClient(lang *Language) (*LSPClient, error) {
+func NewClient(lang *Language) (*Client, error) {
 	cmd := exec.Command(lang.Command, lang.Args...)
 	cmd.Stderr = os.Stderr
 
@@ -60,21 +60,21 @@ func NewLSPClient(lang *Language) (*LSPClient, error) {
 		return nil, fmt.Errorf("failed to start LSP server: %w", err)
 	}
 
-	return &LSPClient{
+	return &Client{
 		cmd:    cmd,
 		stdin:  stdin,
 		stdout: bufio.NewReader(stdout),
 	}, nil
 }
 
-func (c *LSPClient) Close() error {
+func (c *Client) Close() error {
 	c.notify("shutdown", nil)
 	c.notify("exit", nil)
 	c.stdin.Close()
 	return c.cmd.Wait()
 }
 
-func (c *LSPClient) Initialize(ctx context.Context, rootPath string) error {
+func (c *Client) Initialize(ctx context.Context, rootPath string) error {
 	absRoot, _ := filepath.Abs(rootPath)
 	rootURI := "file://" + absRoot
 
@@ -109,7 +109,7 @@ func (c *LSPClient) Initialize(ctx context.Context, rootPath string) error {
 	return nil
 }
 
-func (c *LSPClient) OpenDocument(uri, languageID, content string) error {
+func (c *Client) OpenDocument(uri, languageID, content string) error {
 	params := map[string]any{
 		"textDocument": map[string]any{
 			"uri":        uri,
@@ -122,7 +122,7 @@ func (c *LSPClient) OpenDocument(uri, languageID, content string) error {
 	return nil
 }
 
-func (c *LSPClient) CloseDocument(uri string) {
+func (c *Client) CloseDocument(uri string) {
 	params := map[string]any{
 		"textDocument": map[string]any{
 			"uri": uri,
@@ -131,7 +131,7 @@ func (c *LSPClient) CloseDocument(uri string) {
 	c.notify("textDocument/didClose", params)
 }
 
-func (c *LSPClient) Format(uri string) ([]TextEdit, error) {
+func (c *Client) Format(uri string) ([]TextEdit, error) {
 	params := map[string]any{
 		"textDocument": map[string]any{
 			"uri": uri,
@@ -155,7 +155,7 @@ func (c *LSPClient) Format(uri string) ([]TextEdit, error) {
 	return edits, nil
 }
 
-func (c *LSPClient) OrganizeImports(uri string, content string) ([]TextEdit, error) {
+func (c *Client) OrganizeImports(uri string, content string) ([]TextEdit, error) {
 	lines := strings.Split(content, "\n")
 	endLine := len(lines) - 1
 	endChar := 0
@@ -201,68 +201,7 @@ func (c *LSPClient) OrganizeImports(uri string, content string) ([]TextEdit, err
 	return nil, nil
 }
 
-type TextEdit struct {
-	Range   Range  `json:"range"`
-	NewText string `json:"newText"`
-}
-
-type Range struct {
-	Start Position `json:"start"`
-	End   Position `json:"end"`
-}
-
-type Position struct {
-	Line      int `json:"line"`
-	Character int `json:"character"`
-}
-
-type CodeAction struct {
-	Title string         `json:"title"`
-	Kind  string         `json:"kind"`
-	Edit  *WorkspaceEdit `json:"edit,omitempty"`
-}
-
-type WorkspaceEdit struct {
-	Changes         map[string][]TextEdit `json:"changes,omitempty"`
-	DocumentChanges []TextDocumentEdit    `json:"documentChanges,omitempty"`
-}
-
-type TextDocumentEdit struct {
-	TextDocument map[string]any `json:"textDocument"`
-	Edits        []TextEdit     `json:"edits"`
-}
-
-type DocumentSymbol struct {
-	Name string
-	Kind string
-	Line int
-}
-
-var symbolKindNames = map[int]string{
-	1: "File", 2: "Module", 3: "Namespace", 4: "Package", 5: "Class",
-	6: "Method", 7: "Property", 8: "Field", 9: "Constructor", 10: "Enum",
-	11: "Interface", 12: "Function", 13: "Variable", 14: "Constant", 15: "String",
-	16: "Number", 17: "Boolean", 18: "Array", 19: "Object", 20: "Key",
-	21: "Null", 22: "EnumMember", 23: "Struct", 24: "Event", 25: "Operator",
-	26: "TypeParameter",
-}
-
-type rawDocumentSymbol struct {
-	Name     string              `json:"name"`
-	Kind     int                 `json:"kind"`
-	Range    Range               `json:"range"`
-	Children []rawDocumentSymbol `json:"children"`
-}
-
-type rawSymbolInformation struct {
-	Name     string `json:"name"`
-	Kind     int    `json:"kind"`
-	Location struct {
-		Range Range `json:"range"`
-	} `json:"location"`
-}
-
-func (c *LSPClient) DocumentSymbols(uri string) ([]DocumentSymbol, error) {
+func (c *Client) DocumentSymbols(uri string) ([]DocumentSymbol, error) {
 	params := map[string]any{
 		"textDocument": map[string]any{
 			"uri": uri,
@@ -276,7 +215,6 @@ func (c *LSPClient) DocumentSymbols(uri string) ([]DocumentSymbol, error) {
 
 	var symbols []DocumentSymbol
 
-	// Try hierarchical DocumentSymbol[] format first
 	var docSymbols []rawDocumentSymbol
 	if err := json.Unmarshal(result, &docSymbols); err == nil && len(docSymbols) > 0 {
 		var flatten func(syms []rawDocumentSymbol)
@@ -300,7 +238,6 @@ func (c *LSPClient) DocumentSymbols(uri string) ([]DocumentSymbol, error) {
 		return symbols, nil
 	}
 
-	// Fall back to flat SymbolInformation[] format
 	var symInfos []rawSymbolInformation
 	if err := json.Unmarshal(result, &symInfos); err == nil {
 		for _, s := range symInfos {
@@ -320,7 +257,7 @@ func (c *LSPClient) DocumentSymbols(uri string) ([]DocumentSymbol, error) {
 	return nil, fmt.Errorf("failed to parse document symbols")
 }
 
-func (c *LSPClient) call(method string, params any) (json.RawMessage, error) {
+func (c *Client) call(method string, params any) (json.RawMessage, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -350,7 +287,7 @@ func (c *LSPClient) call(method string, params any) (json.RawMessage, error) {
 	}
 }
 
-func (c *LSPClient) notify(method string, params any) error {
+func (c *Client) notify(method string, params any) error {
 	req := jsonrpcRequest{
 		JSONRPC: "2.0",
 		Method:  method,
@@ -359,7 +296,7 @@ func (c *LSPClient) notify(method string, params any) error {
 	return c.send(req)
 }
 
-func (c *LSPClient) send(req jsonrpcRequest) error {
+func (c *Client) send(req jsonrpcRequest) error {
 	data, err := json.Marshal(req)
 	if err != nil {
 		return err
@@ -375,7 +312,7 @@ func (c *LSPClient) send(req jsonrpcRequest) error {
 	return nil
 }
 
-func (c *LSPClient) receive() (*jsonrpcResponse, error) {
+func (c *Client) receive() (*jsonrpcResponse, error) {
 	var contentLength int
 
 	for {

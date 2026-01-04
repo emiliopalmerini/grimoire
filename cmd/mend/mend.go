@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/emiliopalmerini/grimoire/internal/lsp"
 	"github.com/emiliopalmerini/grimoire/internal/mend"
 	"github.com/spf13/cobra"
 )
@@ -149,5 +150,5 @@ func expandPaths(patterns []string) ([]string, error) {
 }
 
 func isSupportedFile(path string) bool {
-	return mend.DetectLanguage(path) != nil
+	return lsp.DetectLanguage(path) != nil
 }

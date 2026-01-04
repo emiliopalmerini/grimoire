@@ -1,4 +1,4 @@
-package mend
+package lsp
 
 import (
 	"os/exec"
