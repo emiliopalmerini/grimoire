@@ -5,6 +5,7 @@ import (
 
 	"github.com/emiliopalmerini/grimoire/cmd/conjure"
 	"github.com/emiliopalmerini/grimoire/cmd/mend"
+	"github.com/emiliopalmerini/grimoire/cmd/summon"
 	"github.com/emiliopalmerini/grimoire/cmd/transmute"
 	"github.com/spf13/cobra"
 )
@@ -25,5 +26,6 @@ func Execute() {
 func init() {
 	rootCmd.AddCommand(conjure.Cmd)
 	rootCmd.AddCommand(mend.Cmd)
+	rootCmd.AddCommand(summon.Cmd)
 	rootCmd.AddCommand(transmute.Cmd)
 }
