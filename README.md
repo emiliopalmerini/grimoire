@@ -14,20 +14,40 @@ go build -o grimoire .
 
 ## Commands
 
+### summon
+
+Create a new Go project with standard structure:
+
+```bash
+grimoire summon myapp
+grimoire summon myapi --type=api
+grimoire summon mysite --type=web
+grimoire summon myservice --type=grpc
+grimoire summon hybrid --type=api --transport=http,grpc
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--module, -m` | project name | Go module path |
+| `--go-version, -g` | `1.25` | Go version for flake |
+| `--type, -t` | `api` | Project type: `api`, `web`, `grpc` |
+| `--transport, -T` | based on type | Transports: `http`, `grpc`, `amqp` |
+
 ### conjure
 
 Scaffold vertical slice modules with CQRS pattern:
 
 ```bash
-grimoire conjure user --transport=http,amqp --api=html --crud
-grimoire conjure order --transport=http --api=json --persistence=postgres
+grimoire conjure user
+grimoire conjure user --transport=http,grpc
+grimoire conjure user --api=html --persistence=postgres
+grimoire conjure order --transport=http,amqp
 ```
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--transport, -t` | `http` | Transport layers: `http`, `amqp` |
+| `--transport, -T` | `http` | Transport layers: `http`, `grpc`, `amqp` |
 | `--api, -a` | `json` | API type: `json`, `html` |
-| `--crud, -c` | `true` | Generate CRUD operations |
 | `--persistence, -p` | - | Persistence: `sqlite`, `postgres`, `mongodb` |
 
 ### transmute
