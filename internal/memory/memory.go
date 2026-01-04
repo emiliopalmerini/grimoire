@@ -47,7 +47,16 @@ func GetDiff(all bool) (string, error) {
 	return diff, nil
 }
 
-func GenerateMessage(diff string) (string, error) {
+func GetRecentCommits(n int) (string, error) {
+	cmd := exec.Command("git", "log", fmt.Sprintf("-%d", n), "--pretty=format:%s")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", nil // not fatal, just skip history
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+func GenerateMessage(diff string, history string) (string, error) {
 	prompt := `Analyze this git diff and generate a conventional commit message.
 
 Rules:
@@ -57,7 +66,16 @@ Rules:
 - Focus on the "why" not the "what"
 - Do not use emojis
 - Output ONLY the commit message, nothing else
+`
 
+	if history != "" {
+		prompt += `
+Recent commits (match this style):
+` + history + `
+`
+	}
+
+	prompt += `
 Diff:
 ` + diff
 
