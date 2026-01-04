@@ -1,4 +1,4 @@
-# Grimoire
+# Grimorio
 
 A CLI spellbook for developer productivity.
 
@@ -6,10 +6,10 @@ A CLI spellbook for developer productivity.
 
 ```bash
 # With nix flake
-nix profile install github:emiliopalmerini/grimoire
+nix profile install github:emiliopalmerini/grimorio
 
 # Or build locally
-go build -o grimoire .
+go build -o grimorio .
 ```
 
 ## Commands
@@ -19,11 +19,11 @@ go build -o grimoire .
 Create a new Go project with standard structure:
 
 ```bash
-grimoire summon myapp
-grimoire summon myapi --type=api
-grimoire summon mysite --type=web
-grimoire summon myservice --type=grpc
-grimoire summon hybrid --type=api --transport=http,grpc
+grimorio summon myapp
+grimorio summon myapi --type=api
+grimorio summon mysite --type=web
+grimorio summon myservice --type=grpc
+grimorio summon hybrid --type=api --transport=http,grpc
 ```
 
 | Flag | Default | Description |
@@ -38,10 +38,10 @@ grimoire summon hybrid --type=api --transport=http,grpc
 Scaffold vertical slice modules with CQRS pattern:
 
 ```bash
-grimoire conjure user
-grimoire conjure user --transport=http,grpc
-grimoire conjure user --api=html --persistence=postgres
-grimoire conjure order --transport=http,amqp
+grimorio conjure user
+grimorio conjure user --transport=http,grpc
+grimorio conjure user --api=html --persistence=postgres
+grimorio conjure order --transport=http,amqp
 ```
 
 | Flag | Default | Description |
@@ -55,11 +55,11 @@ grimoire conjure order --transport=http,amqp
 Convert data between formats:
 
 ```bash
-grimoire transmute data.json --to yaml
-grimoire transmute config.xml --to json
-grimoire transmute users.csv --to markdown
-grimoire transmute table.html --to json
-cat data.json | grimoire transmute --from json --to xml
+grimorio transmute data.json --to yaml
+grimorio transmute config.xml --to json
+grimorio transmute users.csv --to markdown
+grimorio transmute table.html --to json
+cat data.json | grimorio transmute --from json --to xml
 ```
 
 Supported formats (all read/write):
@@ -76,10 +76,10 @@ Supported formats (all read/write):
 Format files using LSP servers (organizes imports + formats):
 
 ```bash
-grimoire mend file.go
-grimoire mend ./internal/...
-grimoire mend --check .
-grimoire mend --diff file.py
+grimorio mend file.go
+grimorio mend ./internal/...
+grimorio mend --check .
+grimorio mend --diff file.py
 ```
 
 Supported: Go, Python, Rust, C#, TypeScript, JavaScript, HTML, JSON, YAML, Nix, Lua

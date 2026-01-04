@@ -5,8 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build and Run
 
 ```bash
-go build -o grimoire .
-./grimoire [command]
+go build -o grimorio .
+./grimorio [command]
 ```
 
 ## Setup
@@ -19,7 +19,7 @@ git config core.hooksPath .githooks
 
 ## Architecture
 
-Grimoire is a multi-tool CLI for developer productivity, built with Cobra.
+Grimorio is a multi-tool CLI for developer productivity, built with Cobra.
 
 ### Structure
 
@@ -43,11 +43,11 @@ Grimoire is a multi-tool CLI for developer productivity, built with Cobra.
 Creates a new Go project with standard structure:
 
 ```bash
-grimoire summon myapp
-grimoire summon myapi --type=api
-grimoire summon mysite --type=web
-grimoire summon myservice --type=grpc
-grimoire summon hybrid --type=api --transport=http,grpc
+grimorio summon myapp
+grimorio summon myapi --type=api
+grimorio summon mysite --type=web
+grimorio summon myservice --type=grpc
+grimorio summon hybrid --type=api --transport=http,grpc
 ```
 
 Project types: `api` (default), `web` (sessions, CSRF, templ), `grpc`.
@@ -57,10 +57,10 @@ Project types: `api` (default), `web` (sessions, CSRF, templ), `grpc`.
 Generates vertical slice modules with CQRS pattern:
 
 ```bash
-grimoire conjure user
-grimoire conjure user --transport=http,grpc
-grimoire conjure user --api=html --persistence=postgres
-grimoire conjure order --transport=http,amqp
+grimorio conjure user
+grimorio conjure user --transport=http,grpc
+grimorio conjure user --api=html --persistence=postgres
+grimorio conjure order --transport=http,amqp
 ```
 
 Generated structure includes:
@@ -76,10 +76,10 @@ Must be run from a Go project root containing `internal/` and `go.mod`.
 Formats files using LSP servers. Organizes imports and formats code.
 
 ```bash
-grimoire mend file.go
-grimoire mend ./internal/...
-grimoire mend --check .
-grimoire mend --diff file.py
+grimorio mend file.go
+grimorio mend ./internal/...
+grimorio mend --check .
+grimorio mend --diff file.py
 ```
 
 Supports: Go, Python, Rust, C#, TypeScript, JavaScript, HTML, JSON, YAML, Nix, Lua.
@@ -89,10 +89,10 @@ Supports: Go, Python, Rust, C#, TypeScript, JavaScript, HTML, JSON, YAML, Nix, L
 Converts data between formats: JSON, YAML, TOML, XML, CSV, Markdown, HTML.
 
 ```bash
-grimoire transmute data.json --to yaml
-grimoire transmute config.xml --to json
-grimoire transmute users.json --to markdown
-cat data.json | grimoire transmute --from json --to xml
+grimorio transmute data.json --to yaml
+grimorio transmute config.xml --to json
+grimorio transmute users.json --to markdown
+cat data.json | grimorio transmute --from json --to xml
 ```
 
 All formats support both reading and writing.
