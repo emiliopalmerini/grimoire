@@ -21,6 +21,9 @@ git config core.hooksPath .githooks
 
 Grimorio is a multi-tool CLI for developer productivity, built with Cobra.
 
+- **Cantrips**: Deterministic, code-only commands
+- **Spells**: AI-powered commands using Claude Code
+
 ### Structure
 
 - `cmd/` - Cobra command definitions
@@ -36,7 +39,7 @@ Grimorio is a multi-tool CLI for developer productivity, built with Cobra.
 3. Register it in `cmd/root.go` via `rootCmd.AddCommand()`
 4. Place implementation logic in `internal/<feature>/`
 
-## Commands
+## Cantrips
 
 ### Summon (Project Initialization)
 
@@ -96,3 +99,43 @@ cat data.json | grimorio transmute --from json --to xml
 ```
 
 All formats support both reading and writing.
+
+## Spells
+
+All spells use headless Claude Code (`claude -p`).
+
+### Modify-Memory (AI Commit Generation)
+
+```bash
+grimorio modify-memory
+grimorio modify-memory -a
+```
+
+Analyzes staged changes, fetches recent commit history for style matching, asks for motivation, and generates conventional commit messages.
+
+### Divine (Code Explanation)
+
+```bash
+grimorio divine main.go
+grimorio divine handler.go --symbol HandleLogin
+```
+
+Explains code in plain language. Optionally focus on a specific function/type.
+
+### Scry (Code Review)
+
+```bash
+grimorio scry
+grimorio scry -a
+```
+
+Reviews staged changes for bugs, security issues, and code problems.
+
+### Augur (Error Analysis)
+
+```bash
+grimorio augur "go build"
+grimorio augur "dotnet build"
+```
+
+Runs a command, captures output, and analyzes any errors with suggested fixes.

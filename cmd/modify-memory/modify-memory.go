@@ -14,15 +14,15 @@ var (
 
 var Cmd = &cobra.Command{
 	Use:   "modify-memory",
-	Short: "Generate commits from diffs using Claude",
+	Short: "[Spell] Generate commits from diffs using Claude",
 	Long: `Modify-memory analyzes your git changes and generates conventional commit messages using Claude Code.
 
 By default, it looks at staged changes. Use -a to include all changes.
 
 Examples:
-  grimoire modify-memory
-  grimoire modify-memory -a
-  grimoire modify-memory -n`,
+  grimorio modify-memory
+  grimorio modify-memory -a
+  grimorio modify-memory -n`,
 	RunE: runModifyMemory,
 }
 

@@ -232,6 +232,94 @@ type TextDocumentEdit struct {
 	Edits        []TextEdit     `json:"edits"`
 }
 
+type DocumentSymbol struct {
+	Name string
+	Kind string
+	Line int
+}
+
+var symbolKindNames = map[int]string{
+	1: "File", 2: "Module", 3: "Namespace", 4: "Package", 5: "Class",
+	6: "Method", 7: "Property", 8: "Field", 9: "Constructor", 10: "Enum",
+	11: "Interface", 12: "Function", 13: "Variable", 14: "Constant", 15: "String",
+	16: "Number", 17: "Boolean", 18: "Array", 19: "Object", 20: "Key",
+	21: "Null", 22: "EnumMember", 23: "Struct", 24: "Event", 25: "Operator",
+	26: "TypeParameter",
+}
+
+type rawDocumentSymbol struct {
+	Name     string              `json:"name"`
+	Kind     int                 `json:"kind"`
+	Range    Range               `json:"range"`
+	Children []rawDocumentSymbol `json:"children"`
+}
+
+type rawSymbolInformation struct {
+	Name     string `json:"name"`
+	Kind     int    `json:"kind"`
+	Location struct {
+		Range Range `json:"range"`
+	} `json:"location"`
+}
+
+func (c *LSPClient) DocumentSymbols(uri string) ([]DocumentSymbol, error) {
+	params := map[string]any{
+		"textDocument": map[string]any{
+			"uri": uri,
+		},
+	}
+
+	result, err := c.call("textDocument/documentSymbol", params)
+	if err != nil {
+		return nil, err
+	}
+
+	var symbols []DocumentSymbol
+
+	// Try hierarchical DocumentSymbol[] format first
+	var docSymbols []rawDocumentSymbol
+	if err := json.Unmarshal(result, &docSymbols); err == nil && len(docSymbols) > 0 {
+		var flatten func(syms []rawDocumentSymbol)
+		flatten = func(syms []rawDocumentSymbol) {
+			for _, s := range syms {
+				kind := symbolKindNames[s.Kind]
+				if kind == "" {
+					kind = "Unknown"
+				}
+				symbols = append(symbols, DocumentSymbol{
+					Name: s.Name,
+					Kind: kind,
+					Line: s.Range.Start.Line,
+				})
+				if len(s.Children) > 0 {
+					flatten(s.Children)
+				}
+			}
+		}
+		flatten(docSymbols)
+		return symbols, nil
+	}
+
+	// Fall back to flat SymbolInformation[] format
+	var symInfos []rawSymbolInformation
+	if err := json.Unmarshal(result, &symInfos); err == nil {
+		for _, s := range symInfos {
+			kind := symbolKindNames[s.Kind]
+			if kind == "" {
+				kind = "Unknown"
+			}
+			symbols = append(symbols, DocumentSymbol{
+				Name: s.Name,
+				Kind: kind,
+				Line: s.Location.Range.Start.Line,
+			})
+		}
+		return symbols, nil
+	}
+
+	return nil, fmt.Errorf("failed to parse document symbols")
+}
+
 func (c *LSPClient) call(method string, params any) (json.RawMessage, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

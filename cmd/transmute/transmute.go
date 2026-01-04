@@ -17,7 +17,7 @@ var (
 
 var Cmd = &cobra.Command{
 	Use:   "transmute [input-file]",
-	Short: "Transmute data between formats",
+	Short: "[Cantrip] Transmute data between formats",
 	Long: `Transmute converts data between different formats.
 
 Supported formats: json, yaml, toml, xml, csv, markdown (md), html
@@ -26,12 +26,12 @@ The input format is auto-detected from file extension, or specify with --from.
 Arrays of objects render as tables in markdown/html, single objects as key-value pairs.
 
 Examples:
-  grimoire transmute data.json --to yaml
-  grimoire transmute config.yaml --to toml
-  grimoire transmute config.xml --to json
-  grimoire transmute users.json --to xml
-  grimoire transmute data.json --to csv -o output.csv
-  cat data.json | grimoire transmute --from json --to yaml`,
+  grimorio transmute data.json --to yaml
+  grimorio transmute config.yaml --to toml
+  grimorio transmute config.xml --to json
+  grimorio transmute users.json --to xml
+  grimorio transmute data.json --to csv -o output.csv
+  cat data.json | grimorio transmute --from json --to yaml`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runTransmute,
 }

@@ -1,5 +1,6 @@
 # Binaries
 grimoire
+grimorio
 *.exe
 
 # Nix

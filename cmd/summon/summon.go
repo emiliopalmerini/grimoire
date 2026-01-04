@@ -16,7 +16,7 @@ var (
 
 var Cmd = &cobra.Command{
 	Use:   "summon [project-name]",
-	Short: "Summon a new Go project",
+	Short: "[Cantrip] Summon a new Go project",
 	Long: `Summon conjures a new Go project with a standard structure.
 
 This incantation creates a project with the appropriate structure based on
@@ -28,11 +28,11 @@ Project types:
   grpc  - gRPC service
 
 Examples:
-  grimoire summon myapp
-  grimoire summon myapi --type=api
-  grimoire summon mysite --type=web
-  grimoire summon myservice --type=grpc
-  grimoire summon hybrid --type=api --transport=http,grpc`,
+  grimorio summon myapp
+  grimorio summon myapi --type=api
+  grimorio summon mysite --type=web
+  grimorio summon myservice --type=grpc
+  grimorio summon hybrid --type=api --transport=http,grpc`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]

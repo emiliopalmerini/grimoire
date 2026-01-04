@@ -15,7 +15,7 @@ var (
 
 var Cmd = &cobra.Command{
 	Use:   "conjure [module-name]",
-	Short: "Conjure a new vertical slice module",
+	Short: "[Cantrip] Conjure a new vertical slice module",
 	Long: `Conjure summons a new module with the vertical slice architecture structure.
 
 This incantation creates a module with service, repository, and transport layers.
@@ -26,10 +26,10 @@ Transports:
   amqp  - RabbitMQ consumer
 
 Examples:
-  grimoire conjure user
-  grimoire conjure user --transport=http,grpc
-  grimoire conjure user --api=html --persistence=postgres
-  grimoire conjure order --transport=http,amqp`,
+  grimorio conjure user
+  grimorio conjure user --transport=http,grpc
+  grimorio conjure user --api=html --persistence=postgres
+  grimorio conjure order --transport=http,amqp`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]

@@ -2,6 +2,11 @@
 
 A CLI spellbook for developer productivity.
 
+## Cantrips vs Spells
+
+- **Cantrips**: Deterministic, code-only commands (conjure, summon, mend, transmute)
+- **Spells**: AI-powered commands using Claude Code (modify-memory, divine, scry, augur)
+
 ## Installation
 
 ```bash
@@ -12,7 +17,7 @@ nix profile install github:emiliopalmerini/grimorio
 go build -o grimorio .
 ```
 
-## Commands
+## Cantrips
 
 ### summon
 
@@ -88,3 +93,60 @@ Supported: Go, Python, Rust, C#, TypeScript, JavaScript, HTML, JSON, YAML, Nix, 
 |------|-------------|
 | `--check, -c` | Check only, exit 1 if changes needed |
 | `--diff, -d` | Show diff of changes |
+
+## Spells
+
+All spells require `claude` CLI to be installed and available in PATH.
+
+### modify-memory
+
+Generate commit messages from diffs using Claude Code:
+
+```bash
+grimorio modify-memory
+grimorio modify-memory -a
+grimorio modify-memory -n
+```
+
+| Flag | Description |
+|------|-------------|
+| `--all, -a` | Include all changes, not just staged |
+| `--dry-run, -n` | Output message only, don't commit |
+
+### divine
+
+Explain code in plain language:
+
+```bash
+grimorio divine main.go
+grimorio divine internal/auth/auth.go
+grimorio divine handler.go --symbol HandleLogin
+```
+
+| Flag | Description |
+|------|-------------|
+| `--symbol, -s` | Focus on a specific function/type |
+
+### scry
+
+Review staged changes for bugs and issues:
+
+```bash
+grimorio scry
+grimorio scry -a
+```
+
+| Flag | Description |
+|------|-------------|
+| `--all, -a` | Include all changes, not just staged |
+
+### augur
+
+Run a command and analyze errors:
+
+```bash
+grimorio augur "go build"
+grimorio augur "npm test"
+grimorio augur "dotnet build"
+grimorio augur "cargo check"
+```

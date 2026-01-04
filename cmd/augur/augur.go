@@ -1,0 +1,54 @@
+package augur
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/emiliopalmerini/grimoire/internal/augur"
+	"github.com/spf13/cobra"
+)
+
+var Cmd = &cobra.Command{
+	Use:   "augur [command]",
+	Short: "[Spell] Run a command and analyze errors",
+	Long: `Augur runs a command, captures its output, and analyzes any errors using Claude.
+
+Examples:
+  grimorio augur "go build"
+  grimorio augur "npm test"
+  grimorio augur "dotnet build"
+  grimorio augur "cargo check"`,
+	Args: cobra.MinimumNArgs(1),
+	RunE: runAugur,
+}
+
+func runAugur(cmd *cobra.Command, args []string) error {
+	command := strings.Join(args, " ")
+
+	fmt.Printf("Running: %s\n\n", command)
+	result, err := augur.RunCommand(command)
+	if err != nil {
+		return err
+	}
+
+	if result.Stdout != "" {
+		fmt.Println(result.Stdout)
+	}
+	if result.Stderr != "" {
+		fmt.Println(result.Stderr)
+	}
+
+	if result.ExitCode == 0 && result.Stderr == "" {
+		fmt.Println("Command succeeded.")
+		return nil
+	}
+
+	fmt.Println("\nAuguring the output...")
+	analysis, err := augur.Analyze(result)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(analysis)
+	return nil
+}

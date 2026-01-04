@@ -18,7 +18,7 @@ var (
 
 var Cmd = &cobra.Command{
 	Use:   "mend [files...]",
-	Short: "Format files using LSP",
+	Short: "[Cantrip] Format files using LSP",
 	Long: `Mend formats files using language server protocol (LSP) formatters.
 
 Supports: Go, Python, Rust, C#, TypeScript, JavaScript, HTML, JSON, YAML, Nix, Lua
@@ -26,10 +26,10 @@ Supports: Go, Python, Rust, C#, TypeScript, JavaScript, HTML, JSON, YAML, Nix, L
 The appropriate LSP server must be installed and available in PATH.
 
 Examples:
-  grimoire mend file.go
-  grimoire mend ./internal/...
-  grimoire mend --check .
-  grimoire mend --diff file.py`,
+  grimorio mend file.go
+  grimorio mend ./internal/...
+  grimorio mend --check .
+  grimorio mend --diff file.py`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: runMend,
 }
