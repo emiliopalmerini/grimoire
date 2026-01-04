@@ -1,4 +1,4 @@
-module github.com/emiliopalmerini/grimoire
+module github.com/emiliopalmerini/grimorio
 
 go 1.25.4
 

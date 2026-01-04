@@ -1,5 +1,5 @@
 {
-  description = "Grimoire - CLI spellbook for developer productivity";
+  description = "Grimorio - CLI spellbook for developer productivity";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -14,7 +14,7 @@
         let pkgs = nixpkgs.legacyPackages.${system};
         in {
           default = pkgs.buildGoModule {
-            pname = "grimoire";
+            pname = "grimorio";
             version = "0.2.0";
             src = ./.;
             vendorHash = "sha256-Ia1+Xg3CT6xMNJEVCNB6orOC926/nM8dj/suAtlonRU=";

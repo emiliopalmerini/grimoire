@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/emiliopalmerini/grimoire/internal/lsp"
+	"github.com/emiliopalmerini/grimorio/internal/lsp"
 )
 
 func ReadFile(path string) (string, error) {

@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/emiliopalmerini/grimoire/internal/lsp"
-	"github.com/emiliopalmerini/grimoire/internal/mend"
+	"github.com/emiliopalmerini/grimorio/internal/lsp"
+	"github.com/emiliopalmerini/grimorio/internal/mend"
 	"github.com/spf13/cobra"
 )
 

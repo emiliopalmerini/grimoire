@@ -4,13 +4,13 @@ fmt:
 	go fmt ./...
 
 build: fmt
-	go build -o grimoire .
+	go build -o grimorio .
 
 run: build
-	./grimoire
+	./grimorio
 
 test: fmt
 	go test ./...
 
 clean:
-	rm -f grimoire
+	rm -f grimorio

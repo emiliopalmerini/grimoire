@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/emiliopalmerini/grimoire/internal/lsp"
+	"github.com/emiliopalmerini/grimorio/internal/lsp"
 )
 
 type Options struct {

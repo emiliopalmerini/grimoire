@@ -3,7 +3,7 @@ package divine
 import (
 	"fmt"
 
-	"github.com/emiliopalmerini/grimoire/internal/divine"
+	"github.com/emiliopalmerini/grimorio/internal/divine"
 	"github.com/spf13/cobra"
 )
 

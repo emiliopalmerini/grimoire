@@ -3,7 +3,7 @@ package modifymemory
 import (
 	"fmt"
 
-	"github.com/emiliopalmerini/grimoire/internal/memory"
+	"github.com/emiliopalmerini/grimorio/internal/memory"
 	"github.com/spf13/cobra"
 )
 

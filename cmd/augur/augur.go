@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/emiliopalmerini/grimoire/internal/augur"
+	"github.com/emiliopalmerini/grimorio/internal/augur"
 	"github.com/spf13/cobra"
 )
 

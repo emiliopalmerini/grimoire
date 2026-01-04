@@ -3,14 +3,14 @@ package cmd
 import (
 	"os"
 
-	"github.com/emiliopalmerini/grimoire/cmd/augur"
-	"github.com/emiliopalmerini/grimoire/cmd/conjure"
-	"github.com/emiliopalmerini/grimoire/cmd/divine"
-	"github.com/emiliopalmerini/grimoire/cmd/mend"
-	modifymemory "github.com/emiliopalmerini/grimoire/cmd/modify-memory"
-	"github.com/emiliopalmerini/grimoire/cmd/scry"
-	"github.com/emiliopalmerini/grimoire/cmd/summon"
-	"github.com/emiliopalmerini/grimoire/cmd/transmute"
+	"github.com/emiliopalmerini/grimorio/cmd/augur"
+	"github.com/emiliopalmerini/grimorio/cmd/conjure"
+	"github.com/emiliopalmerini/grimorio/cmd/divine"
+	"github.com/emiliopalmerini/grimorio/cmd/mend"
+	modifymemory "github.com/emiliopalmerini/grimorio/cmd/modify-memory"
+	"github.com/emiliopalmerini/grimorio/cmd/scry"
+	"github.com/emiliopalmerini/grimorio/cmd/summon"
+	"github.com/emiliopalmerini/grimorio/cmd/transmute"
 	"github.com/spf13/cobra"
 )
 

@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/emiliopalmerini/grimoire/internal/transmute"
+	"github.com/emiliopalmerini/grimorio/internal/transmute"
 	"github.com/spf13/cobra"
 )
 
