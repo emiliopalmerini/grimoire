@@ -75,6 +75,12 @@ func gitignoreTemplate() string {
 # Test binary
 *.test
 
+# Coverage
+*.out
+*.coverprofile
+coverage.*
+profile.cov
+
 # Output
 /bin/
 /dist/

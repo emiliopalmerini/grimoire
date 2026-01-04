@@ -36,6 +36,7 @@ func createDirectories(projectDir string, opts ProjectOptions) error {
 		filepath.Join(projectDir, "internal", "app"),
 		filepath.Join(projectDir, "internal", "server"),
 		filepath.Join(projectDir, "internal", "middleware"),
+		filepath.Join(projectDir, ".github", "workflows"),
 	}
 
 	if hasTransport(opts.Transports, "grpc") {
@@ -69,6 +70,7 @@ func createFiles(projectDir string, opts ProjectOptions) error {
 		filepath.Join(projectDir, "flake.nix"):                       flakeTemplate(opts.GoVersion, opts),
 		filepath.Join(projectDir, ".gitignore"):                      gitignoreTemplate(),
 		filepath.Join(projectDir, "Makefile"):                        makefileTemplate(opts.Name),
+		filepath.Join(projectDir, ".github", "workflows", "ci.yml"):  ciWorkflowTemplate(opts.Name, opts.GoVersion, opts),
 	}
 
 	if hasTransport(opts.Transports, "http") {
