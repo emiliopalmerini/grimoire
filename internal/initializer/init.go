@@ -68,6 +68,7 @@ func createFiles(projectDir string, opts ProjectOptions) error {
 		filepath.Join(projectDir, "internal", "server", "health.go"): healthTemplate(),
 		filepath.Join(projectDir, "flake.nix"):                       flakeTemplate(opts.GoVersion, opts),
 		filepath.Join(projectDir, ".gitignore"):                      gitignoreTemplate(),
+		filepath.Join(projectDir, "Makefile"):                        makefileTemplate(opts.Name),
 	}
 
 	if hasTransport(opts.Transports, "http") {

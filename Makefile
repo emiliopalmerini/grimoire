@@ -1,16 +1,22 @@
-.PHONY: fmt build run test clean
+.PHONY: all fmt vet build run test clean
+
+all: fmt vet test build
 
 fmt:
 	go fmt ./...
 
-build: fmt
+vet: fmt
+	go vet ./...
+
+build: vet
 	go build -o grimorio .
 
 run: build
 	./grimorio
 
-test: fmt
-	go test ./...
+test: vet
+	go test -v ./...
 
 clean:
 	rm -f grimorio
+	go clean ./...

@@ -38,6 +38,32 @@ go %s
 `, modulePath, goVersion, deps)
 }
 
+func makefileTemplate(name string) string {
+	return fmt.Sprintf(`.PHONY: all fmt vet build run test clean
+
+all: fmt vet test build
+
+fmt:
+	go fmt ./...
+
+vet: fmt
+	go vet ./...
+
+build: vet
+	go build -o %s .
+
+run: build
+	./%s
+
+test: vet
+	go test -v ./...
+
+clean:
+	rm -f %s
+	go clean ./...
+`, name, name, name)
+}
+
 func gitignoreTemplate() string {
 	return `# Binaries
 *.exe
