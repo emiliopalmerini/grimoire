@@ -1,0 +1,154 @@
+package memory
+
+import (
+	"bufio"
+	"bytes"
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+)
+
+type Options struct {
+	All    bool
+	DryRun bool
+}
+
+func GetDiff(all bool) (string, error) {
+	var cmd *exec.Cmd
+	if all {
+		cmd = exec.Command("git", "diff", "HEAD")
+	} else {
+		cmd = exec.Command("git", "diff", "--cached")
+	}
+
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get diff: %w", err)
+	}
+
+	diff := strings.TrimSpace(string(out))
+	if diff == "" {
+		if all {
+			return "", fmt.Errorf("no changes to commit")
+		}
+		cmd = exec.Command("git", "diff")
+		out, err = cmd.Output()
+		if err != nil {
+			return "", fmt.Errorf("failed to get diff: %w", err)
+		}
+		diff = strings.TrimSpace(string(out))
+		if diff == "" {
+			return "", fmt.Errorf("no changes to commit")
+		}
+		return "", fmt.Errorf("no staged changes (use -a to include unstaged changes)")
+	}
+
+	return diff, nil
+}
+
+func GenerateMessage(diff string) (string, error) {
+	prompt := `Analyze this git diff and generate a conventional commit message.
+
+Rules:
+- Use conventional commits format: type(scope): description
+- Types: feat, fix, docs, style, refactor, test, chore
+- Keep the subject line under 50 characters
+- Focus on the "why" not the "what"
+- Do not use emojis
+- Output ONLY the commit message, nothing else
+
+Diff:
+` + diff
+
+	cmd := exec.Command("claude", "-p", prompt)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("claude failed: %w\n%s", err, stderr.String())
+	}
+
+	msg := strings.TrimSpace(stdout.String())
+	if msg == "" {
+		return "", fmt.Errorf("claude returned empty message")
+	}
+
+	return msg, nil
+}
+
+func Confirm(message string) (bool, bool, error) {
+	fmt.Println("\n" + message + "\n")
+	fmt.Print("Commit with this message? [y/n/e(dit)] ")
+
+	reader := bufio.NewReader(os.Stdin)
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		return false, false, err
+	}
+
+	input = strings.TrimSpace(strings.ToLower(input))
+	switch input {
+	case "y", "yes":
+		return true, false, nil
+	case "e", "edit":
+		return false, true, nil
+	default:
+		return false, false, nil
+	}
+}
+
+func EditMessage(message string) (string, error) {
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vim"
+	}
+
+	tmpfile, err := os.CreateTemp("", "commit-msg-*.txt")
+	if err != nil {
+		return "", err
+	}
+	defer os.Remove(tmpfile.Name())
+
+	if _, err := tmpfile.WriteString(message); err != nil {
+		return "", err
+	}
+	tmpfile.Close()
+
+	cmd := exec.Command(editor, tmpfile.Name())
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("editor failed: %w", err)
+	}
+
+	edited, err := os.ReadFile(tmpfile.Name())
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(edited)), nil
+}
+
+func Commit(message string, stageAll bool) error {
+	if stageAll {
+		add := exec.Command("git", "add", "-A")
+		add.Stdout = os.Stdout
+		add.Stderr = os.Stderr
+		if err := add.Run(); err != nil {
+			return fmt.Errorf("staging failed: %w", err)
+		}
+	}
+
+	cmd := exec.Command("git", "commit", "-m", message)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("commit failed: %w", err)
+	}
+	return nil
+}
