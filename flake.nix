@@ -17,7 +17,7 @@
             pname = "grimorio";
             version = "0.2.0";
             src = ./.;
-            vendorHash = "sha256-Ia1+Xg3CT6xMNJEVCNB6orOC926/nM8dj/suAtlonRU=";
+            vendorHash = "sha256-F1VJ3HbnQJxLIe/Gr3tR3BivMLHYG9WBtP2J0I5ZjmU=";
           };
         });
     };
