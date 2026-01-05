@@ -4,11 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/emiliopalmerini/grimorio/internal/cantrip/mend"
-	"github.com/emiliopalmerini/grimorio/internal/lsp"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +39,7 @@ func init() {
 
 func runMend(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
-	files, err := expandPaths(args)
+	files, err := mend.ExpandPaths(args)
 	if err != nil {
 		return err
 	}
@@ -89,66 +86,4 @@ func runMend(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
-}
-
-func expandPaths(patterns []string) ([]string, error) {
-	var files []string
-	seen := make(map[string]bool)
-
-	for _, pattern := range patterns {
-		if strings.HasSuffix(pattern, "/...") {
-			dir := strings.TrimSuffix(pattern, "/...")
-			err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-				if err != nil {
-					return err
-				}
-				if !info.IsDir() && isSupportedFile(path) {
-					absPath, _ := filepath.Abs(path)
-					if !seen[absPath] {
-						seen[absPath] = true
-						files = append(files, path)
-					}
-				}
-				return nil
-			})
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			info, err := os.Stat(pattern)
-			if err != nil {
-				return nil, err
-			}
-			if info.IsDir() {
-				entries, err := os.ReadDir(pattern)
-				if err != nil {
-					return nil, err
-				}
-				for _, entry := range entries {
-					if !entry.IsDir() {
-						path := filepath.Join(pattern, entry.Name())
-						if isSupportedFile(path) {
-							absPath, _ := filepath.Abs(path)
-							if !seen[absPath] {
-								seen[absPath] = true
-								files = append(files, path)
-							}
-						}
-					}
-				}
-			} else {
-				absPath, _ := filepath.Abs(pattern)
-				if !seen[absPath] {
-					seen[absPath] = true
-					files = append(files, pattern)
-				}
-			}
-		}
-	}
-
-	return files, nil
-}
-
-func isSupportedFile(path string) bool {
-	return lsp.DetectLanguage(path) != nil
 }
