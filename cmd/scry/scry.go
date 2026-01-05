@@ -3,7 +3,7 @@ package scry
 import (
 	"fmt"
 
-	"github.com/emiliopalmerini/grimorio/internal/scry"
+	"github.com/emiliopalmerini/grimorio/internal/spell/scry"
 	"github.com/spf13/cobra"
 )
 

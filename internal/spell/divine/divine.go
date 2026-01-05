@@ -37,7 +37,10 @@ func GetLSPContext(path string, content string) string {
 		return ""
 	}
 
-	absPath, _ := filepath.Abs(path)
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return ""
+	}
 	uri := "file://" + absPath
 
 	if err := client.OpenDocument(uri, lang.Name, content); err != nil {

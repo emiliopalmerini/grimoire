@@ -3,7 +3,7 @@ package conjure
 import (
 	"fmt"
 
-	"github.com/emiliopalmerini/grimorio/internal/scaffold"
+	"github.com/emiliopalmerini/grimorio/internal/cantrip/scaffold"
 	"github.com/spf13/cobra"
 )
 

@@ -5,8 +5,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
+)
+
+var (
+	validTransports   = []string{"http", "grpc", "amqp"}
+	validAPITypes     = []string{"json", "html"}
+	validPersistence  = []string{"sqlite", "postgres", "mongodb", ""}
+	identifierPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 )
 
 type ModuleOptions struct {
@@ -16,7 +24,32 @@ type ModuleOptions struct {
 	Persistence string
 }
 
+func (o ModuleOptions) Validate() error {
+	if o.Name == "" {
+		return fmt.Errorf("module name is required")
+	}
+	if !identifierPattern.MatchString(o.Name) {
+		return fmt.Errorf("invalid module name %q: must start with lowercase letter and contain only lowercase letters, numbers, and underscores", o.Name)
+	}
+	for _, t := range o.Transports {
+		if !slices.Contains(validTransports, t) {
+			return fmt.Errorf("invalid transport %q: must be one of %v", t, validTransports)
+		}
+	}
+	if !slices.Contains(validAPITypes, o.APIType) {
+		return fmt.Errorf("invalid API type %q: must be one of %v", o.APIType, validAPITypes)
+	}
+	if !slices.Contains(validPersistence, o.Persistence) {
+		return fmt.Errorf("invalid persistence %q: must be one of %v", o.Persistence, validPersistence[:len(validPersistence)-1])
+	}
+	return nil
+}
+
 func CreateModule(opts ModuleOptions) error {
+	if err := opts.Validate(); err != nil {
+		return err
+	}
+
 	internalDir, err := findInternalDir()
 	if err != nil {
 		return err
@@ -92,8 +125,10 @@ func createDirectories(moduleDir string, opts ModuleOptions) error {
 	}
 
 	if hasTransport(opts.Transports, "grpc") {
-		// Proto files go in api/proto/v1 at project root
-		cwd, _ := os.Getwd()
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get current directory: %w", err)
+		}
 		dirs = append(dirs, filepath.Join(cwd, "api", "proto", "v1"))
 	}
 
@@ -135,8 +170,10 @@ func createFiles(moduleDir string, opts ModuleOptions, goModulePath string) erro
 
 	if hasTransport(opts.Transports, "grpc") {
 		files[filepath.Join(moduleDir, "grpc_server.go")] = grpcServerTemplate(name, namePascal, goModulePath)
-		// Proto file at project root
-		cwd, _ := os.Getwd()
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get current directory: %w", err)
+		}
 		files[filepath.Join(cwd, "api", "proto", "v1", name+".proto")] = protoTemplate(name, namePascal, goModulePath)
 	}
 
