@@ -1,9 +1,11 @@
 package summon
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/emiliopalmerini/grimorio/internal/cantrip/initializer"
+	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/spf13/cobra"
 )
 
@@ -35,37 +37,39 @@ Examples:
   grimorio summon hybrid --type=api --transport=http,grpc`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
+		flags, _ := json.Marshal(map[string]any{"type": projectType, "transports": transports, "go-version": goVersion})
+		return metrics.Track("summon", metrics.Cantrip, string(flags), func() error {
+			name := args[0]
 
-		module := modulePath
-		if module == "" {
-			module = name
-		}
-
-		// Set default transports based on type if not specified
-		if len(transports) == 0 {
-			switch projectType {
-			case "grpc":
-				transports = []string{"grpc"}
-			default:
-				transports = []string{"http"}
+			module := modulePath
+			if module == "" {
+				module = name
 			}
-		}
 
-		opts := initializer.ProjectOptions{
-			Name:       name,
-			ModulePath: module,
-			GoVersion:  goVersion,
-			Type:       projectType,
-			Transports: transports,
-		}
+			if len(transports) == 0 {
+				switch projectType {
+				case "grpc":
+					transports = []string{"grpc"}
+				default:
+					transports = []string{"http"}
+				}
+			}
 
-		if err := initializer.CreateProject(opts); err != nil {
-			return fmt.Errorf("summoning failed: %w", err)
-		}
+			opts := initializer.ProjectOptions{
+				Name:       name,
+				ModulePath: module,
+				GoVersion:  goVersion,
+				Type:       projectType,
+				Transports: transports,
+			}
 
-		fmt.Printf("Project '%s' summoned successfully\n", name)
-		return nil
+			if err := initializer.CreateProject(opts); err != nil {
+				return fmt.Errorf("summoning failed: %w", err)
+			}
+
+			fmt.Printf("Project '%s' summoned successfully\n", name)
+			return nil
+		})
 	},
 }
 

@@ -80,5 +80,6 @@ Focus on:
 
 	prompt += "\nCode:\n" + content
 
+	claude.SetCommand("divine")
 	return claude.Run(claude.Opus, prompt)
 }

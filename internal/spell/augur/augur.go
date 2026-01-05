@@ -70,5 +70,6 @@ Exit code: %d
 		prompt += "Current changes:\n" + diff
 	}
 
+	claude.SetCommand("augur")
 	return claude.Run(claude.Sonnet, prompt)
 }

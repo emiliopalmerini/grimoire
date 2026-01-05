@@ -1,8 +1,10 @@
 package modifymemory
 
 import (
+	"encoding/json"
 	"fmt"
 
+	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/emiliopalmerini/grimorio/internal/spell/memory"
 	"github.com/spf13/cobra"
 )
@@ -32,48 +34,51 @@ func init() {
 }
 
 func runModifyMemory(cmd *cobra.Command, args []string) error {
-	diff, err := memory.GetDiff(allChanges)
-	if err != nil {
-		return err
-	}
-
-	history, _ := memory.GetRecentCommits(10)
-
-	description, err := memory.AskDescription()
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Generating commit message...")
-	message, err := memory.GenerateMessage(diff, history, description)
-	if err != nil {
-		return err
-	}
-
-	if dryRun {
-		fmt.Println(message)
-		return nil
-	}
-
-	for {
-		confirmed, edit, err := memory.Confirm(message)
+	flags, _ := json.Marshal(map[string]any{"all": allChanges, "dry-run": dryRun})
+	return metrics.Track("modify-memory", metrics.Spell, string(flags), func() error {
+		diff, err := memory.GetDiff(allChanges)
 		if err != nil {
 			return err
 		}
 
-		if confirmed {
-			return memory.Commit(message, allChanges)
+		history, _ := memory.GetRecentCommits(10)
+
+		description, err := memory.AskDescription()
+		if err != nil {
+			return err
 		}
 
-		if edit {
-			message, err = memory.EditMessage(message)
+		fmt.Println("Generating commit message...")
+		message, err := memory.GenerateMessage(diff, history, description)
+		if err != nil {
+			return err
+		}
+
+		if dryRun {
+			fmt.Println(message)
+			return nil
+		}
+
+		for {
+			confirmed, edit, err := memory.Confirm(message)
 			if err != nil {
 				return err
 			}
-			continue
-		}
 
-		fmt.Println("Commit cancelled.")
-		return nil
-	}
+			if confirmed {
+				return memory.Commit(message, allChanges)
+			}
+
+			if edit {
+				message, err = memory.EditMessage(message)
+				if err != nil {
+					return err
+				}
+				continue
+			}
+
+			fmt.Println("Commit cancelled.")
+			return nil
+		}
+	})
 }

@@ -61,6 +61,7 @@ User motivation:
 Diff:
 ` + diff
 
+	claude.SetCommand("modify-memory")
 	msg, err := claude.Run(claude.Sonnet, prompt)
 	if err != nil {
 		return "", err

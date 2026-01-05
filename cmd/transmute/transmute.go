@@ -1,11 +1,13 @@
 package transmute
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/emiliopalmerini/grimorio/internal/cantrip/transmute"
+	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/spf13/cobra"
 )
 
@@ -44,50 +46,53 @@ func init() {
 }
 
 func runTransmute(cmd *cobra.Command, args []string) error {
-	var input []byte
-	var err error
-	var inputPath string
+	flags, _ := json.Marshal(map[string]any{"from": fromFormat, "to": toFormat})
+	return metrics.Track("transmute", metrics.Cantrip, string(flags), func() error {
+		var input []byte
+		var err error
+		var inputPath string
 
-	if len(args) == 1 {
-		inputPath = args[0]
-		input, err = os.ReadFile(inputPath)
-		if err != nil {
-			return fmt.Errorf("failed to read input file: %w", err)
+		if len(args) == 1 {
+			inputPath = args[0]
+			input, err = os.ReadFile(inputPath)
+			if err != nil {
+				return fmt.Errorf("failed to read input file: %w", err)
+			}
+		} else {
+			stat, _ := os.Stdin.Stat()
+			if (stat.Mode() & os.ModeCharDevice) != 0 {
+				return fmt.Errorf("no input file provided and stdin is empty")
+			}
+			input, err = io.ReadAll(os.Stdin)
+			if err != nil {
+				return fmt.Errorf("failed to read stdin: %w", err)
+			}
 		}
-	} else {
-		stat, _ := os.Stdin.Stat()
-		if (stat.Mode() & os.ModeCharDevice) != 0 {
-			return fmt.Errorf("no input file provided and stdin is empty")
-		}
-		input, err = io.ReadAll(os.Stdin)
-		if err != nil {
-			return fmt.Errorf("failed to read stdin: %w", err)
-		}
-	}
 
-	srcFormat := fromFormat
-	if srcFormat == "" {
-		if inputPath != "" {
-			srcFormat = transmute.DetectFormat(inputPath)
-		}
+		srcFormat := fromFormat
 		if srcFormat == "" {
-			return fmt.Errorf("cannot detect input format, use --from to specify")
+			if inputPath != "" {
+				srcFormat = transmute.DetectFormat(inputPath)
+			}
+			if srcFormat == "" {
+				return fmt.Errorf("cannot detect input format, use --from to specify")
+			}
 		}
-	}
 
-	result, err := transmute.Convert(input, srcFormat, toFormat)
-	if err != nil {
-		return fmt.Errorf("transmutation failed: %w", err)
-	}
-
-	if outputFile != "" {
-		if err := os.WriteFile(outputFile, result, 0644); err != nil {
-			return fmt.Errorf("failed to write output file: %w", err)
+		result, err := transmute.Convert(input, srcFormat, toFormat)
+		if err != nil {
+			return fmt.Errorf("transmutation failed: %w", err)
 		}
-		fmt.Printf("Transmuted %s → %s: %s\n", srcFormat, toFormat, outputFile)
-	} else {
-		fmt.Print(string(result))
-	}
 
-	return nil
+		if outputFile != "" {
+			if err := os.WriteFile(outputFile, result, 0644); err != nil {
+				return fmt.Errorf("failed to write output file: %w", err)
+			}
+			fmt.Printf("Transmuted %s → %s: %s\n", srcFormat, toFormat, outputFile)
+		} else {
+			fmt.Print(string(result))
+		}
+
+		return nil
+	})
 }

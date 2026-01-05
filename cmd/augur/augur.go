@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/emiliopalmerini/grimorio/internal/spell/augur"
 	"github.com/spf13/cobra"
 )
@@ -23,32 +24,34 @@ Examples:
 }
 
 func runAugur(cmd *cobra.Command, args []string) error {
-	command := strings.Join(args, " ")
+	return metrics.Track("augur", metrics.Spell, "", func() error {
+		command := strings.Join(args, " ")
 
-	fmt.Printf("Running: %s\n\n", command)
-	result, err := augur.RunCommand(command)
-	if err != nil {
-		return err
-	}
+		fmt.Printf("Running: %s\n\n", command)
+		result, err := augur.RunCommand(command)
+		if err != nil {
+			return err
+		}
 
-	if result.Stdout != "" {
-		fmt.Println(result.Stdout)
-	}
-	if result.Stderr != "" {
-		fmt.Println(result.Stderr)
-	}
+		if result.Stdout != "" {
+			fmt.Println(result.Stdout)
+		}
+		if result.Stderr != "" {
+			fmt.Println(result.Stderr)
+		}
 
-	if result.ExitCode == 0 && result.Stderr == "" {
-		fmt.Println("Command succeeded.")
+		if result.ExitCode == 0 && result.Stderr == "" {
+			fmt.Println("Command succeeded.")
+			return nil
+		}
+
+		fmt.Println("\nAuguring the output...")
+		analysis, err := augur.Analyze(result)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(analysis)
 		return nil
-	}
-
-	fmt.Println("\nAuguring the output...")
-	analysis, err := augur.Analyze(result)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(analysis)
-	return nil
+	})
 }

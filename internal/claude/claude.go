@@ -2,9 +2,13 @@ package claude
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
+
+	"github.com/emiliopalmerini/grimorio/internal/metrics"
 )
 
 type Model string
@@ -30,15 +34,33 @@ func (r ExecRunner) Run(model Model, prompt string) (string, error) {
 // DefaultRunner is the default Runner implementation.
 var DefaultRunner Runner = ExecRunner{}
 
+var currentCommand string
+
+func SetCommand(cmd string) {
+	currentCommand = cmd
+}
+
 func Run(model Model, prompt string) (string, error) {
+	start := time.Now()
 	cmd := exec.Command("claude", "-p", "--no-session-persistence", "--model", string(model), prompt)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	if err := cmd.Run(); err != nil {
+	err := cmd.Run()
+	latency := time.Since(start).Milliseconds()
+	response := strings.TrimSpace(stdout.String())
+
+	cmdName := currentCommand
+	if cmdName == "" {
+		cmdName = "unknown"
+	}
+
+	if err != nil {
+		metrics.Default.RecordAI(context.Background(), cmdName, string(model), len(prompt), 0, latency, false, err.Error())
 		return "", fmt.Errorf("claude failed: %w\n%s", err, stderr.String())
 	}
 
-	return strings.TrimSpace(stdout.String()), nil
+	metrics.Default.RecordAI(context.Background(), cmdName, string(model), len(prompt), len(response), latency, true, "")
+	return response, nil
 }

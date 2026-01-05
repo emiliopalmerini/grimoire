@@ -1,8 +1,10 @@
 package divine
 
 import (
+	"encoding/json"
 	"fmt"
 
+	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/emiliopalmerini/grimorio/internal/spell/divine"
 	"github.com/spf13/cobra"
 )
@@ -27,20 +29,23 @@ func init() {
 }
 
 func runDivine(cmd *cobra.Command, args []string) error {
-	path := args[0]
+	flags, _ := json.Marshal(map[string]any{"symbol": symbol})
+	return metrics.Track("divine", metrics.Spell, string(flags), func() error {
+		path := args[0]
 
-	content, err := divine.ReadFile(path)
-	if err != nil {
-		return err
-	}
+		content, err := divine.ReadFile(path)
+		if err != nil {
+			return err
+		}
 
-	fmt.Println("Divining the code...")
-	lspContext := divine.GetLSPContext(path, content)
-	explanation, err := divine.Explain(content, symbol, lspContext)
-	if err != nil {
-		return err
-	}
+		fmt.Println("Divining the code...")
+		lspContext := divine.GetLSPContext(path, content)
+		explanation, err := divine.Explain(content, symbol, lspContext)
+		if err != nil {
+			return err
+		}
 
-	fmt.Println(explanation)
-	return nil
+		fmt.Println(explanation)
+		return nil
+	})
 }

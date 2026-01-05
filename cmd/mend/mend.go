@@ -2,10 +2,12 @@ package mend
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/emiliopalmerini/grimorio/internal/cantrip/mend"
+	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/spf13/cobra"
 )
 
@@ -38,52 +40,55 @@ func init() {
 }
 
 func runMend(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
-	files, err := mend.ExpandPaths(args)
-	if err != nil {
-		return err
-	}
-
-	if len(files) == 0 {
-		return fmt.Errorf("no files found")
-	}
-
-	opts := mend.Options{
-		Check: checkOnly,
-		Diff:  showDiff,
-	}
-
-	var hasChanges bool
-	var hasErrors bool
-
-	for _, file := range files {
-		result, err := mend.FormatFile(ctx, file, opts)
+	flags, _ := json.Marshal(map[string]any{"check": checkOnly, "diff": showDiff})
+	return metrics.Track("mend", metrics.Cantrip, string(flags), func() error {
+		ctx := context.Background()
+		files, err := mend.ExpandPaths(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error formatting %s: %v\n", file, err)
-			hasErrors = true
-			continue
+			return err
 		}
 
-		if result.Changed {
-			hasChanges = true
-			if checkOnly {
-				fmt.Printf("Would format: %s\n", result.Path)
-			} else {
-				fmt.Printf("Formatted: %s\n", result.Path)
+		if len(files) == 0 {
+			return fmt.Errorf("no files found")
+		}
+
+		opts := mend.Options{
+			Check: checkOnly,
+			Diff:  showDiff,
+		}
+
+		var hasChanges bool
+		var hasErrors bool
+
+		for _, file := range files {
+			result, err := mend.FormatFile(ctx, file, opts)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error formatting %s: %v\n", file, err)
+				hasErrors = true
+				continue
 			}
-			if showDiff && result.Diff != "" {
-				fmt.Println(result.Diff)
+
+			if result.Changed {
+				hasChanges = true
+				if checkOnly {
+					fmt.Printf("Would format: %s\n", result.Path)
+				} else {
+					fmt.Printf("Formatted: %s\n", result.Path)
+				}
+				if showDiff && result.Diff != "" {
+					fmt.Println(result.Diff)
+				}
 			}
 		}
-	}
 
-	if hasErrors {
-		return fmt.Errorf("some files failed to format")
-	}
+		if hasErrors {
+			return fmt.Errorf("some files failed to format")
+		}
 
-	if checkOnly && hasChanges {
-		return fmt.Errorf("files need formatting")
-	}
+		if checkOnly && hasChanges {
+			return fmt.Errorf("files need formatting")
+		}
 
-	return nil
+		return nil
+	})
 }

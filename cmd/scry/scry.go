@@ -1,8 +1,10 @@
 package scry
 
 import (
+	"encoding/json"
 	"fmt"
 
+	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/emiliopalmerini/grimorio/internal/spell/scry"
 	"github.com/spf13/cobra"
 )
@@ -25,17 +27,20 @@ func init() {
 }
 
 func runScry(cmd *cobra.Command, args []string) error {
-	diff, err := scry.GetDiff(allChanges)
-	if err != nil {
-		return err
-	}
+	flags, _ := json.Marshal(map[string]any{"all": allChanges})
+	return metrics.Track("scry", metrics.Spell, string(flags), func() error {
+		diff, err := scry.GetDiff(allChanges)
+		if err != nil {
+			return err
+		}
 
-	fmt.Println("Scrying the changes...")
-	review, err := scry.Review(diff)
-	if err != nil {
-		return err
-	}
+		fmt.Println("Scrying the changes...")
+		review, err := scry.Review(diff)
+		if err != nil {
+			return err
+		}
 
-	fmt.Println(review)
-	return nil
+		fmt.Println(review)
+		return nil
+	})
 }

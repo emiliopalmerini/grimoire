@@ -1,9 +1,11 @@
 package conjure
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/emiliopalmerini/grimorio/internal/cantrip/scaffold"
+	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/spf13/cobra"
 )
 
@@ -32,21 +34,24 @@ Examples:
   grimorio conjure order --transport=http,amqp`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
+		flags, _ := json.Marshal(map[string]any{"transports": transports, "api": apiType, "persistence": persistence})
+		return metrics.Track("conjure", metrics.Cantrip, string(flags), func() error {
+			name := args[0]
 
-		opts := scaffold.ModuleOptions{
-			Name:        name,
-			Transports:  transports,
-			APIType:     apiType,
-			Persistence: persistence,
-		}
+			opts := scaffold.ModuleOptions{
+				Name:        name,
+				Transports:  transports,
+				APIType:     apiType,
+				Persistence: persistence,
+			}
 
-		if err := scaffold.CreateModule(opts); err != nil {
-			return fmt.Errorf("conjuration failed: %w", err)
-		}
+			if err := scaffold.CreateModule(opts); err != nil {
+				return fmt.Errorf("conjuration failed: %w", err)
+			}
 
-		fmt.Printf("Module '%s' conjured successfully\n", name)
-		return nil
+			fmt.Printf("Module '%s' conjured successfully\n", name)
+			return nil
+		})
 	},
 }
 

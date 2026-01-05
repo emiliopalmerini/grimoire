@@ -9,8 +9,10 @@ import (
 	"github.com/emiliopalmerini/grimorio/cmd/mend"
 	modifymemory "github.com/emiliopalmerini/grimorio/cmd/modify-memory"
 	"github.com/emiliopalmerini/grimorio/cmd/scry"
+	"github.com/emiliopalmerini/grimorio/cmd/stats"
 	"github.com/emiliopalmerini/grimorio/cmd/summon"
 	"github.com/emiliopalmerini/grimorio/cmd/transmute"
+	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/spf13/cobra"
 )
 
@@ -21,8 +23,14 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
+	dbPath, err := metrics.DefaultDBPath()
+	if err == nil {
+		tracker := metrics.NewSQLiteTracker(dbPath)
+		metrics.Default = tracker
+		defer tracker.Close()
+	}
+
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
@@ -34,6 +42,7 @@ func init() {
 	rootCmd.AddCommand(mend.Cmd)
 	rootCmd.AddCommand(modifymemory.Cmd)
 	rootCmd.AddCommand(scry.Cmd)
+	rootCmd.AddCommand(stats.Cmd)
 	rootCmd.AddCommand(summon.Cmd)
 	rootCmd.AddCommand(transmute.Cmd)
 }
