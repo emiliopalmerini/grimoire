@@ -4,7 +4,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
+)
+
+var (
+	validProjectTypes = []string{"api", "web", "grpc"}
+	validTransports   = []string{"http", "grpc", "amqp"}
+	projectNameRegex  = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)
 )
 
 type ProjectOptions struct {
@@ -15,7 +22,29 @@ type ProjectOptions struct {
 	Transports []string // http, grpc, amqp
 }
 
+func (o ProjectOptions) Validate() error {
+	if o.Name == "" {
+		return fmt.Errorf("project name is required")
+	}
+	if !projectNameRegex.MatchString(o.Name) {
+		return fmt.Errorf("invalid project name %q: must start with lowercase letter and contain only lowercase letters, numbers, hyphens, and underscores", o.Name)
+	}
+	if !slices.Contains(validProjectTypes, o.Type) {
+		return fmt.Errorf("invalid project type %q: must be one of %v", o.Type, validProjectTypes)
+	}
+	for _, t := range o.Transports {
+		if !slices.Contains(validTransports, t) {
+			return fmt.Errorf("invalid transport %q: must be one of %v", t, validTransports)
+		}
+	}
+	return nil
+}
+
 func CreateProject(opts ProjectOptions) error {
+	if err := opts.Validate(); err != nil {
+		return err
+	}
+
 	projectDir := opts.Name
 
 	if err := createDirectories(projectDir, opts); err != nil {

@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -95,18 +96,11 @@ func (c *Consumer) handleDelete(ctx context.Context, body []byte) error {
 	if err := json.Unmarshal(body, &msg); err != nil {
 		return err
 	}
-	id, err := parseUUID(msg.ID)
+	id, err := uuid.Parse(msg.ID)
 	if err != nil {
 		return err
 	}
 	return c.service.Delete(ctx, id)
 }
-
-func parseUUID(s string) (uuid, error) {
-	// Import github.com/google/uuid and use uuid.Parse
-	return uuid{}, nil
-}
-
-type uuid struct{}
 `, name, name, name, name, namePascal, namePascal)
 }
