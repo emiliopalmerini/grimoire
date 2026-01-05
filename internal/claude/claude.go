@@ -14,6 +14,7 @@ import (
 type Model string
 
 const (
+	Haiku  Model = "haiku"
 	Sonnet Model = "sonnet"
 	Opus   Model = "opus"
 )

@@ -19,15 +19,6 @@ func GetRecentCommits(n int) (string, error) {
 	return git.GetRecentCommits(n, "%s")
 }
 
-func AskDescription() (string, error) {
-	fmt.Print("What's the motivation for this change? (optional): ")
-	reader := bufio.NewReader(os.Stdin)
-	input, err := reader.ReadString('\n')
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(input), nil
-}
 
 func GenerateMessage(diff string, history string, description string) (string, error) {
 	prompt := `Analyze this git diff and generate a conventional commit message with title and body.
@@ -62,7 +53,7 @@ Diff:
 ` + diff
 
 	claude.SetCommand("modify-memory")
-	msg, err := claude.Run(claude.Sonnet, prompt)
+	msg, err := claude.Run(claude.Haiku, prompt)
 	if err != nil {
 		return "", err
 	}

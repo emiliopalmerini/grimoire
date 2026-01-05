@@ -17,23 +17,34 @@ var Cmd = &cobra.Command{
 	Long: `Stats displays usage statistics and insights for grimorio commands.
 
 Examples:
-  grimorio stats              # Last 7 days
+  grimorio stats              # All time (default)
+  grimorio stats --days 7     # Last 7 days
   grimorio stats --days 30    # Last 30 days`,
 	RunE: runStats,
 }
 
 func init() {
-	Cmd.Flags().IntVarP(&days, "days", "d", 7, "Number of days to show stats for")
+	Cmd.Flags().IntVarP(&days, "days", "d", 0, "Number of days to show stats for (0 = all time)")
 }
 
 func runStats(cmd *cobra.Command, args []string) error {
-	since := time.Now().AddDate(0, 0, -days)
+	var since time.Time
+	var periodLabel string
+
+	if days > 0 {
+		since = time.Now().AddDate(0, 0, -days)
+		periodLabel = fmt.Sprintf("last %d days", days)
+	} else {
+		since = time.Time{}
+		periodLabel = "all time"
+	}
+
 	summary, err := metrics.Default.GetSummary(context.Background(), since)
 	if err != nil {
 		return fmt.Errorf("failed to get stats: %w", err)
 	}
 
-	fmt.Printf("Usage Statistics (last %d days)\n", days)
+	fmt.Printf("Usage Statistics (%s)\n", periodLabel)
 	fmt.Println("================================")
 	fmt.Println()
 
