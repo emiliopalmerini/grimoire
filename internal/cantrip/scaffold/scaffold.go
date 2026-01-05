@@ -125,8 +125,10 @@ func createDirectories(moduleDir string, opts ModuleOptions) error {
 	}
 
 	if hasTransport(opts.Transports, "grpc") {
-		// Proto files go in api/proto/v1 at project root
-		cwd, _ := os.Getwd()
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get current directory: %w", err)
+		}
 		dirs = append(dirs, filepath.Join(cwd, "api", "proto", "v1"))
 	}
 
@@ -168,8 +170,10 @@ func createFiles(moduleDir string, opts ModuleOptions, goModulePath string) erro
 
 	if hasTransport(opts.Transports, "grpc") {
 		files[filepath.Join(moduleDir, "grpc_server.go")] = grpcServerTemplate(name, namePascal, goModulePath)
-		// Proto file at project root
-		cwd, _ := os.Getwd()
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get current directory: %w", err)
+		}
 		files[filepath.Join(cwd, "api", "proto", "v1", name+".proto")] = protoTemplate(name, namePascal, goModulePath)
 	}
 

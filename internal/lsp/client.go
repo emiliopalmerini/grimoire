@@ -75,7 +75,10 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) Initialize(ctx context.Context, rootPath string) error {
-	absRoot, _ := filepath.Abs(rootPath)
+	absRoot, err := filepath.Abs(rootPath)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path: %w", err)
+	}
 	rootURI := "file://" + absRoot
 
 	params := map[string]any{
@@ -100,8 +103,7 @@ func (c *Client) Initialize(ctx context.Context, rootPath string) error {
 		},
 	}
 
-	_, err := c.call("initialize", params)
-	if err != nil {
+	if _, err = c.call("initialize", params); err != nil {
 		return err
 	}
 
@@ -326,7 +328,11 @@ func (c *Client) receive() (*jsonrpcResponse, error) {
 		}
 		if strings.HasPrefix(line, "Content-Length:") {
 			val := strings.TrimSpace(strings.TrimPrefix(line, "Content-Length:"))
-			contentLength, _ = strconv.Atoi(val)
+			var err error
+			contentLength, err = strconv.Atoi(val)
+			if err != nil {
+				return nil, fmt.Errorf("invalid Content-Length header %q: %w", val, err)
+			}
 		}
 	}
 
