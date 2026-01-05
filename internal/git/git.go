@@ -6,6 +6,37 @@ import (
 	"strings"
 )
 
+// Repository defines the interface for git operations.
+// This allows for mocking in tests.
+type Repository interface {
+	GetDiff(opts DiffOptions) (string, error)
+	GetRecentCommits(n int, format string) (string, error)
+	StageAll() error
+	Commit(message string) error
+}
+
+// ExecRepository implements Repository using the actual git CLI.
+type ExecRepository struct{}
+
+func (r ExecRepository) GetDiff(opts DiffOptions) (string, error) {
+	return GetDiff(opts)
+}
+
+func (r ExecRepository) GetRecentCommits(n int, format string) (string, error) {
+	return GetRecentCommits(n, format)
+}
+
+func (r ExecRepository) StageAll() error {
+	return StageAll()
+}
+
+func (r ExecRepository) Commit(message string) error {
+	return Commit(message)
+}
+
+// DefaultRepository is the default Repository implementation.
+var DefaultRepository Repository = ExecRepository{}
+
 type DiffOptions struct {
 	All    bool
 	Staged bool
