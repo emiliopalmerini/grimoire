@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/emiliopalmerini/grimorio/internal/claude"
 )
 
 type Result struct {
@@ -86,14 +88,5 @@ Exit code: %d
 		prompt += "Current changes:\n" + diff
 	}
 
-	cmd := exec.Command("claude", "-p", "--no-session-persistence", "--model", "sonnet", prompt)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("claude failed: %w\n%s", err, stderr.String())
-	}
-
-	return strings.TrimSpace(stdout.String()), nil
+	return claude.Run(claude.Sonnet, prompt)
 }

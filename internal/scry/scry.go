@@ -1,10 +1,11 @@
 package scry
 
 import (
-	"bytes"
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/emiliopalmerini/grimorio/internal/claude"
 )
 
 func GetDiff(all bool) (string, error) {
@@ -46,14 +47,5 @@ If there are issues, list them with file and context.
 Diff:
 ` + diff
 
-	cmd := exec.Command("claude", "-p", "--no-session-persistence", "--model", "opus", prompt)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("claude failed: %w\n%s", err, stderr.String())
-	}
-
-	return strings.TrimSpace(stdout.String()), nil
+	return claude.Run(claude.Opus, prompt)
 }

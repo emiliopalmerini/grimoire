@@ -1,14 +1,13 @@
 package divine
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/emiliopalmerini/grimorio/internal/claude"
 	"github.com/emiliopalmerini/grimorio/internal/lsp"
 )
 
@@ -78,14 +77,5 @@ Focus on:
 
 	prompt += "\nCode:\n" + content
 
-	cmd := exec.Command("claude", "-p", "--no-session-persistence", "--model", "opus", prompt)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("claude failed: %w\n%s", err, stderr.String())
-	}
-
-	return strings.TrimSpace(stdout.String()), nil
+	return claude.Run(claude.Opus, prompt)
 }

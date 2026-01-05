@@ -2,11 +2,12 @@ package memory
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/emiliopalmerini/grimorio/internal/claude"
 )
 
 type Options struct {
@@ -98,16 +99,10 @@ User motivation:
 Diff:
 ` + diff
 
-	cmd := exec.Command("claude", "-p", "--no-session-persistence", "--model", "sonnet", prompt)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("claude failed: %w\n%s", err, stderr.String())
+	msg, err := claude.Run(claude.Sonnet, prompt)
+	if err != nil {
+		return "", err
 	}
-
-	msg := strings.TrimSpace(stdout.String())
 	if msg == "" {
 		return "", fmt.Errorf("claude returned empty message")
 	}
