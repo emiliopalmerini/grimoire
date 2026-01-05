@@ -78,7 +78,7 @@ Focus on:
 
 	prompt += "\nCode:\n" + content
 
-	cmd := exec.Command("claude", "-p", "--model", "opus", prompt)
+	cmd := exec.Command("claude", "-p", "--no-session-persistence", "--model", "opus", prompt)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr

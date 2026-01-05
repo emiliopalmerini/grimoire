@@ -46,7 +46,7 @@ If there are issues, list them with file and context.
 Diff:
 ` + diff
 
-	cmd := exec.Command("claude", "-p", "--model", "opus", prompt)
+	cmd := exec.Command("claude", "-p", "--no-session-persistence", "--model", "opus", prompt)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
