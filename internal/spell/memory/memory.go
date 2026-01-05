@@ -8,53 +8,15 @@ import (
 	"strings"
 
 	"github.com/emiliopalmerini/grimorio/internal/claude"
+	"github.com/emiliopalmerini/grimorio/internal/git"
 )
 
-type Options struct {
-	All    bool
-	DryRun bool
-}
-
 func GetDiff(all bool) (string, error) {
-	var cmd *exec.Cmd
-	if all {
-		cmd = exec.Command("git", "diff", "HEAD")
-	} else {
-		cmd = exec.Command("git", "diff", "--cached")
-	}
-
-	out, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to get diff: %w", err)
-	}
-
-	diff := strings.TrimSpace(string(out))
-	if diff == "" {
-		if all {
-			return "", fmt.Errorf("no changes to commit")
-		}
-		cmd = exec.Command("git", "diff")
-		out, err = cmd.Output()
-		if err != nil {
-			return "", fmt.Errorf("failed to get diff: %w", err)
-		}
-		diff = strings.TrimSpace(string(out))
-		if diff == "" {
-			return "", fmt.Errorf("no changes to commit")
-		}
-		return "", fmt.Errorf("no staged changes (use -a to include unstaged changes)")
-	}
-
-	return diff, nil
+	return git.GetDiff(git.DiffOptions{All: all})
 }
 
 func GetRecentCommits(n int) (string, error) {
-	cmd := exec.Command("git", "log", fmt.Sprintf("-%d", n), "--pretty=format:%s")
-	out, err := cmd.Output()
-	if err != nil {
-		return "", nil // not fatal, just skip history
-	}
-	return strings.TrimSpace(string(out)), nil
+	return git.GetRecentCommits(n, "%s")
 }
 
 func AskDescription() (string, error) {
@@ -177,20 +139,9 @@ func EditMessage(message string) (string, error) {
 
 func Commit(message string, stageAll bool) error {
 	if stageAll {
-		add := exec.Command("git", "add", "-A")
-		add.Stdout = os.Stdout
-		add.Stderr = os.Stderr
-		if err := add.Run(); err != nil {
-			return fmt.Errorf("staging failed: %w", err)
+		if err := git.StageAll(); err != nil {
+			return err
 		}
 	}
-
-	cmd := exec.Command("git", "commit", "-m", message)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("commit failed: %w", err)
-	}
-	return nil
+	return git.Commit(message)
 }

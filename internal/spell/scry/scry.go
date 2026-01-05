@@ -1,35 +1,12 @@
 package scry
 
 import (
-	"fmt"
-	"os/exec"
-	"strings"
-
 	"github.com/emiliopalmerini/grimorio/internal/claude"
+	"github.com/emiliopalmerini/grimorio/internal/git"
 )
 
 func GetDiff(all bool) (string, error) {
-	var cmd *exec.Cmd
-	if all {
-		cmd = exec.Command("git", "diff", "HEAD")
-	} else {
-		cmd = exec.Command("git", "diff", "--cached")
-	}
-
-	out, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to get diff: %w", err)
-	}
-
-	diff := strings.TrimSpace(string(out))
-	if diff == "" {
-		if all {
-			return "", fmt.Errorf("no changes to review")
-		}
-		return "", fmt.Errorf("no staged changes (use -a to include unstaged changes)")
-	}
-
-	return diff, nil
+	return git.GetDiff(git.DiffOptions{All: all})
 }
 
 func Review(diff string) (string, error) {

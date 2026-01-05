@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/emiliopalmerini/grimorio/internal/claude"
+	"github.com/emiliopalmerini/grimorio/internal/git"
 )
 
 type Result struct {
@@ -40,24 +40,6 @@ func RunCommand(command string) (*Result, error) {
 	}, nil
 }
 
-func GetRecentCommits(n int) string {
-	cmd := exec.Command("git", "log", fmt.Sprintf("-%d", n), "--pretty=format:%h %s")
-	out, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(out))
-}
-
-func GetDiff() string {
-	cmd := exec.Command("git", "diff", "HEAD")
-	out, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(out))
-}
-
 func Analyze(result *Result) (string, error) {
 	if result.ExitCode == 0 && result.Stderr == "" {
 		return "Command succeeded with no errors.", nil
@@ -78,12 +60,12 @@ Exit code: %d
 		prompt += "Stdout:\n" + result.Stdout + "\n\n"
 	}
 
-	history := GetRecentCommits(5)
+	history, _ := git.GetRecentCommits(5, "%h %s")
 	if history != "" {
 		prompt += "Recent commits:\n" + history + "\n\n"
 	}
 
-	diff := GetDiff()
+	diff, _ := git.GetDiff(git.DiffOptions{All: true})
 	if diff != "" {
 		prompt += "Current changes:\n" + diff
 	}

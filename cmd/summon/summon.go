@@ -3,7 +3,7 @@ package summon
 import (
 	"fmt"
 
-	"github.com/emiliopalmerini/grimorio/internal/initializer"
+	"github.com/emiliopalmerini/grimorio/internal/cantrip/initializer"
 	"github.com/spf13/cobra"
 )
 
