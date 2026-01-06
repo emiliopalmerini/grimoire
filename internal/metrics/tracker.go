@@ -27,6 +27,12 @@ const (
 	Spell   CommandType = "spell"
 )
 
+type Filter struct {
+	From    time.Time
+	To      time.Time
+	Command string
+}
+
 type Summary struct {
 	TotalCommands       int64
 	TotalFailures       int64
@@ -46,7 +52,7 @@ type CommandStat struct {
 type Tracker interface {
 	RecordCommand(ctx context.Context, command string, cmdType CommandType, durationMs int64, exitCode int, flags string) error
 	RecordAI(ctx context.Context, command, model string, promptLen, responseLen int, latencyMs int64, success bool, errMsg string) error
-	GetSummary(ctx context.Context, since time.Time) (Summary, error)
+	GetSummary(ctx context.Context, filter Filter) (Summary, error)
 	Close() error
 }
 
@@ -193,29 +199,48 @@ func (t *SQLiteTracker) RecordAI(ctx context.Context, command, model string, pro
 	return nil
 }
 
-func (t *SQLiteTracker) GetSummary(ctx context.Context, since time.Time) (Summary, error) {
+func (t *SQLiteTracker) GetSummary(ctx context.Context, filter Filter) (Summary, error) {
 	if err := t.ensureInit(ctx); err != nil {
 		return Summary{}, err
 	}
 
-	sinceStr := since.Format("2006-01-02 15:04:05")
+	fromStr := filter.From.Format("2006-01-02 15:04:05")
+	toStr := filter.To.Format("2006-01-02 15:04:05")
+	if filter.To.IsZero() {
+		toStr = "9999-12-31 23:59:59"
+	}
 
-	total, err := t.queries.GetTotalCommands(ctx, sinceStr)
+	total, err := t.queries.GetTotalCommands(ctx, db.GetTotalCommandsParams{
+		FromDate:      fromStr,
+		ToDate:        toStr,
+		CommandFilter: filter.Command,
+	})
 	if err != nil {
 		return Summary{}, fmt.Errorf("get total commands: %w", err)
 	}
 
-	failures, err := t.queries.GetFailureCount(ctx, sinceStr)
+	failures, err := t.queries.GetFailureCount(ctx, db.GetFailureCountParams{
+		FromDate:      fromStr,
+		ToDate:        toStr,
+		CommandFilter: filter.Command,
+	})
 	if err != nil {
 		return Summary{}, fmt.Errorf("get failure count: %w", err)
 	}
 
-	aiStats, err := t.queries.GetAIStats(ctx, sinceStr)
+	aiStats, err := t.queries.GetAIStats(ctx, db.GetAIStatsParams{
+		FromDate: fromStr,
+		ToDate:   toStr,
+	})
 	if err != nil {
 		return Summary{}, fmt.Errorf("get ai stats: %w", err)
 	}
 
-	cmdStats, err := t.queries.GetCommandStats(ctx, sinceStr)
+	cmdStats, err := t.queries.GetCommandStats(ctx, db.GetCommandStatsParams{
+		FromDate:      fromStr,
+		ToDate:        toStr,
+		CommandFilter: filter.Command,
+	})
 	if err != nil {
 		return Summary{}, fmt.Errorf("get command stats: %w", err)
 	}
@@ -256,4 +281,11 @@ func (t *SQLiteTracker) Close() error {
 		return t.sqlDB.Close()
 	}
 	return nil
+}
+
+func (t *SQLiteTracker) Queries(ctx context.Context) (*db.Queries, error) {
+	if err := t.ensureInit(ctx); err != nil {
+		return nil, err
+	}
+	return t.queries, nil
 }

@@ -16,8 +16,14 @@ SELECT COUNT(*) as total_calls,
        COALESCE(SUM(response_length), 0) as total_response_tokens,
        COALESCE(AVG(latency_ms), 0) as avg_latency_ms
 FROM ai_invocations
-WHERE datetime(created_at) >= datetime(?)
+WHERE datetime(created_at) >= datetime(?1)
+  AND datetime(created_at) <= datetime(?2)
 `
+
+type GetAIStatsParams struct {
+	FromDate interface{}
+	ToDate   interface{}
+}
 
 type GetAIStatsRow struct {
 	TotalCalls          int64
@@ -26,8 +32,8 @@ type GetAIStatsRow struct {
 	AvgLatencyMs        interface{}
 }
 
-func (q *Queries) GetAIStats(ctx context.Context, datetime interface{}) (GetAIStatsRow, error) {
-	row := q.db.QueryRowContext(ctx, getAIStats, datetime)
+func (q *Queries) GetAIStats(ctx context.Context, arg GetAIStatsParams) (GetAIStatsRow, error) {
+	row := q.db.QueryRowContext(ctx, getAIStats, arg.FromDate, arg.ToDate)
 	var i GetAIStatsRow
 	err := row.Scan(
 		&i.TotalCalls,
@@ -38,13 +44,74 @@ func (q *Queries) GetAIStats(ctx context.Context, datetime interface{}) (GetAISt
 	return i, err
 }
 
+const getAIStatsByModel = `-- name: GetAIStatsByModel :many
+SELECT model, COUNT(*) as count,
+       COALESCE(SUM(prompt_length), 0) as prompt_tokens,
+       COALESCE(SUM(response_length), 0) as response_tokens,
+       COALESCE(AVG(latency_ms), 0) as avg_latency_ms
+FROM ai_invocations
+WHERE datetime(created_at) >= datetime(?1)
+  AND datetime(created_at) <= datetime(?2)
+GROUP BY model ORDER BY count DESC
+`
+
+type GetAIStatsByModelParams struct {
+	FromDate interface{}
+	ToDate   interface{}
+}
+
+type GetAIStatsByModelRow struct {
+	Model          string
+	Count          int64
+	PromptTokens   interface{}
+	ResponseTokens interface{}
+	AvgLatencyMs   interface{}
+}
+
+func (q *Queries) GetAIStatsByModel(ctx context.Context, arg GetAIStatsByModelParams) ([]GetAIStatsByModelRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAIStatsByModel, arg.FromDate, arg.ToDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetAIStatsByModelRow{}
+	for rows.Next() {
+		var i GetAIStatsByModelRow
+		if err := rows.Scan(
+			&i.Model,
+			&i.Count,
+			&i.PromptTokens,
+			&i.ResponseTokens,
+			&i.AvgLatencyMs,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCommandStats = `-- name: GetCommandStats :many
 SELECT command, COUNT(*) as count, AVG(duration_ms) as avg_duration_ms
 FROM command_executions
-WHERE datetime(executed_at) >= datetime(?)
+WHERE datetime(executed_at) >= datetime(?1)
+  AND datetime(executed_at) <= datetime(?2)
+  AND (?3 = '' OR command = ?3)
 GROUP BY command
 ORDER BY count DESC
 `
+
+type GetCommandStatsParams struct {
+	FromDate      interface{}
+	ToDate        interface{}
+	CommandFilter interface{}
+}
 
 type GetCommandStatsRow struct {
 	Command       string
@@ -52,8 +119,8 @@ type GetCommandStatsRow struct {
 	AvgDurationMs sql.NullFloat64
 }
 
-func (q *Queries) GetCommandStats(ctx context.Context, datetime interface{}) ([]GetCommandStatsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCommandStats, datetime)
+func (q *Queries) GetCommandStats(ctx context.Context, arg GetCommandStatsParams) ([]GetCommandStatsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCommandStats, arg.FromDate, arg.ToDate, arg.CommandFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -75,12 +142,49 @@ func (q *Queries) GetCommandStats(ctx context.Context, datetime interface{}) ([]
 	return items, nil
 }
 
-const getFailureCount = `-- name: GetFailureCount :one
-SELECT COUNT(*) as failures FROM command_executions WHERE exit_code != 0 AND datetime(executed_at) >= datetime(?)
+const getDistinctCommands = `-- name: GetDistinctCommands :many
+SELECT DISTINCT command FROM command_executions ORDER BY command
 `
 
-func (q *Queries) GetFailureCount(ctx context.Context, datetime interface{}) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getFailureCount, datetime)
+func (q *Queries) GetDistinctCommands(ctx context.Context) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getDistinctCommands)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var command string
+		if err := rows.Scan(&command); err != nil {
+			return nil, err
+		}
+		items = append(items, command)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getFailureCount = `-- name: GetFailureCount :one
+SELECT COUNT(*) as failures FROM command_executions
+WHERE exit_code != 0
+  AND datetime(executed_at) >= datetime(?1)
+  AND datetime(executed_at) <= datetime(?2)
+  AND (?3 = '' OR command = ?3)
+`
+
+type GetFailureCountParams struct {
+	FromDate      interface{}
+	ToDate        interface{}
+	CommandFilter interface{}
+}
+
+func (q *Queries) GetFailureCount(ctx context.Context, arg GetFailureCountParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getFailureCount, arg.FromDate, arg.ToDate, arg.CommandFilter)
 	var failures int64
 	err := row.Scan(&failures)
 	return failures, err
@@ -127,12 +231,18 @@ func (q *Queries) GetRecentAIInvocations(ctx context.Context, limit int64) ([]Ai
 
 const getRecentCommands = `-- name: GetRecentCommands :many
 SELECT id, command, command_type, duration_ms, exit_code, flags, executed_at FROM command_executions
+WHERE (?1 = '' OR command = ?1)
 ORDER BY executed_at DESC
-LIMIT ?
+LIMIT ?2
 `
 
-func (q *Queries) GetRecentCommands(ctx context.Context, limit int64) ([]CommandExecution, error) {
-	rows, err := q.db.QueryContext(ctx, getRecentCommands, limit)
+type GetRecentCommandsParams struct {
+	CommandFilter interface{}
+	LimitCount    int64
+}
+
+func (q *Queries) GetRecentCommands(ctx context.Context, arg GetRecentCommandsParams) ([]CommandExecution, error) {
+	rows, err := q.db.QueryContext(ctx, getRecentCommands, arg.CommandFilter, arg.LimitCount)
 	if err != nil {
 		return nil, err
 	}
@@ -163,11 +273,20 @@ func (q *Queries) GetRecentCommands(ctx context.Context, limit int64) ([]Command
 }
 
 const getTotalCommands = `-- name: GetTotalCommands :one
-SELECT COUNT(*) as total FROM command_executions WHERE datetime(executed_at) >= datetime(?)
+SELECT COUNT(*) as total FROM command_executions
+WHERE datetime(executed_at) >= datetime(?1)
+  AND datetime(executed_at) <= datetime(?2)
+  AND (?3 = '' OR command = ?3)
 `
 
-func (q *Queries) GetTotalCommands(ctx context.Context, datetime interface{}) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getTotalCommands, datetime)
+type GetTotalCommandsParams struct {
+	FromDate      interface{}
+	ToDate        interface{}
+	CommandFilter interface{}
+}
+
+func (q *Queries) GetTotalCommands(ctx context.Context, arg GetTotalCommandsParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getTotalCommands, arg.FromDate, arg.ToDate, arg.CommandFilter)
 	var total int64
 	err := row.Scan(&total)
 	return total, err

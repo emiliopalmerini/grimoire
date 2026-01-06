@@ -1,9 +1,6 @@
 package metrics
 
-import (
-	"context"
-	"time"
-)
+import "context"
 
 type NoopTracker struct{}
 
@@ -15,7 +12,7 @@ func (NoopTracker) RecordAI(context.Context, string, string, int, int, int64, bo
 	return nil
 }
 
-func (NoopTracker) GetSummary(context.Context, time.Time) (Summary, error) {
+func (NoopTracker) GetSummary(context.Context, Filter) (Summary, error) {
 	return Summary{}, nil
 }
 

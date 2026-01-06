@@ -1,0 +1,32 @@
+package views
+
+import (
+	"fmt"
+
+	"github.com/emiliopalmerini/grimorio/internal/metrics"
+)
+
+templ Commands(stats []metrics.CommandStat) {
+	if len(stats) == 0 {
+		<p class="empty-state">No command data yet</p>
+	} else {
+		<table class="data-table">
+			<thead>
+				<tr>
+					<th>Command</th>
+					<th>Count</th>
+					<th>Avg Duration</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, stat := range stats {
+					<tr>
+						<td class="mono">{ stat.Command }</td>
+						<td>{ fmt.Sprintf("%d", stat.Count) }</td>
+						<td>{ fmt.Sprintf("%.0fms", stat.AvgDurationMs) }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
