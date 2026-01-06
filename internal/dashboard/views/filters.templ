@@ -11,9 +11,8 @@ templ Filters(commands []string, filter metrics.Filter) {
 					type="date"
 					id="from"
 					name="from"
-					value={ filter.From.Format("2006-01-02") }
-					if filter.From.IsZero() {
-						value=""
+					if !filter.From.IsZero() {
+						value={ filter.From.Format("2006-01-02") }
 					}
 				/>
 			</div>
@@ -23,9 +22,8 @@ templ Filters(commands []string, filter metrics.Filter) {
 					type="date"
 					id="to"
 					name="to"
-					value={ filter.To.Format("2006-01-02") }
-					if filter.To.IsZero() {
-						value=""
+					if !filter.To.IsZero() {
+						value={ filter.To.Format("2006-01-02") }
 					}
 				/>
 			</div>

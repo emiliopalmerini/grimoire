@@ -57,14 +57,16 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		CommandFilter: filter.Command,
 		LimitCount:    10,
 	})
+	recentAI, _ := queries.GetRecentAIInvocations(ctx, 10)
 	distinctCmds, _ := queries.GetDistinctCommands(ctx)
 
 	data := views.DashboardData{
-		Summary:          summary,
-		ModelStats:       modelStats,
-		RecentCommands:   recentCmds,
-		DistinctCommands: distinctCmds,
-		Filter:           filter,
+		Summary:             summary,
+		ModelStats:          modelStats,
+		RecentCommands:      recentCmds,
+		RecentAIInvocations: recentAI,
+		DistinctCommands:    distinctCmds,
+		Filter:              filter,
 	}
 
 	views.Layout(views.Dashboard(data)).Render(ctx, w)
@@ -144,4 +146,22 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	views.History(recentCmds).Render(ctx, w)
+}
+
+func (s *Server) handleAIActivity(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	queries, err := s.tracker.Queries(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	recentAI, err := queries.GetRecentAIInvocations(ctx, 10)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	views.AIActivity(recentAI).Render(ctx, w)
 }

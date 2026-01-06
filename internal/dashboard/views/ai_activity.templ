@@ -1,0 +1,66 @@
+package views
+
+import (
+	"database/sql"
+	"fmt"
+
+	"github.com/emiliopalmerini/grimorio/internal/metrics/db"
+)
+
+func formatAITime(t sql.NullTime) string {
+	if !t.Valid {
+		return ""
+	}
+	return t.Time.Format("Jan 2, 15:04")
+}
+
+func formatAITokens(tokens sql.NullInt64) string {
+	if !tokens.Valid {
+		return "0"
+	}
+	val := tokens.Int64
+	if val >= 1000000 {
+		return fmt.Sprintf("%.1fM", float64(val)/1000000)
+	}
+	if val >= 1000 {
+		return fmt.Sprintf("%.1fk", float64(val)/1000)
+	}
+	return fmt.Sprintf("%d", val)
+}
+
+templ AIActivity(invocations []db.AiInvocation) {
+	if len(invocations) == 0 {
+		<p class="empty-state">No AI activity yet</p>
+	} else {
+		<div class="ai-activity-list">
+			for _, inv := range invocations {
+				<div class="ai-activity-item">
+					<div class="ai-activity-main">
+						<span class="ai-activity-command mono">{ inv.Command }</span>
+						<span class="ai-activity-model mono">{ inv.Model }</span>
+					</div>
+					<div class="ai-activity-meta">
+						<span class="ai-activity-tokens">
+							{ formatAITokens(inv.PromptLength) } → { formatAITokens(inv.ResponseLength) }
+						</span>
+						if inv.LatencyMs.Valid {
+							<span class="ai-activity-latency">{ fmt.Sprintf("%dms", inv.LatencyMs.Int64) }</span>
+						}
+						<span class={ "ai-activity-status", templ.KV("status-success", inv.Success == 1), templ.KV("status-error", inv.Success == 0) }>
+							if inv.Success == 1 {
+								success
+							} else {
+								if inv.Error.Valid {
+									<span title={ inv.Error.String }>failed</span>
+								} else {
+									failed
+								}
+							}
+						</span>
+						<span class="ai-activity-time">{ formatAITime(inv.CreatedAt) }</span>
+					</div>
+				</div>
+			}
+		</div>
+	}
+}

@@ -6,11 +6,12 @@ import (
 )
 
 type DashboardData struct {
-	Summary          metrics.Summary
-	ModelStats       []db.GetAIStatsByModelRow
-	RecentCommands   []db.CommandExecution
-	DistinctCommands []string
-	Filter           metrics.Filter
+	Summary             metrics.Summary
+	ModelStats          []db.GetAIStatsByModelRow
+	RecentCommands      []db.CommandExecution
+	RecentAIInvocations []db.AiInvocation
+	DistinctCommands    []string
+	Filter              metrics.Filter
 }
 
 func buildQueryString(filter metrics.Filter) string {
@@ -52,6 +53,10 @@ templ Dashboard(data DashboardData) {
 				@Models(data.ModelStats)
 			</section>
 		</div>
+		<section class="section" id="ai-activity" hx-get={ "/ai-activity" + buildQueryString(data.Filter) } hx-trigger="every 30s" hx-swap="innerHTML">
+			<h2 class="section-title">AI Activity</h2>
+			@AIActivity(data.RecentAIInvocations)
+		</section>
 		<section class="section" id="history" hx-get={ "/history" + buildQueryString(data.Filter) } hx-trigger="every 30s" hx-swap="innerHTML">
 			<h2 class="section-title">Recent Activity</h2>
 			@History(data.RecentCommands)

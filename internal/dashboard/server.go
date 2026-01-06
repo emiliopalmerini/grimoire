@@ -46,6 +46,7 @@ func (s *Server) setupRoutes() {
 	r.Get("/stats", s.handleStats)
 	r.Get("/commands", s.handleCommands)
 	r.Get("/models", s.handleModels)
+	r.Get("/ai-activity", s.handleAIActivity)
 	r.Get("/history", s.handleHistory)
 
 	s.router = r
