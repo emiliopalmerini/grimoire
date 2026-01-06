@@ -5,6 +5,7 @@ import (
 
 	"github.com/emiliopalmerini/grimorio/cmd/augur"
 	"github.com/emiliopalmerini/grimorio/cmd/conjure"
+	"github.com/emiliopalmerini/grimorio/cmd/dashboard"
 	"github.com/emiliopalmerini/grimorio/cmd/divine"
 	"github.com/emiliopalmerini/grimorio/cmd/mend"
 	modifymemory "github.com/emiliopalmerini/grimorio/cmd/modify-memory"
@@ -38,6 +39,7 @@ func Execute() {
 func init() {
 	rootCmd.AddCommand(augur.Cmd)
 	rootCmd.AddCommand(conjure.Cmd)
+	rootCmd.AddCommand(dashboard.Cmd)
 	rootCmd.AddCommand(divine.Cmd)
 	rootCmd.AddCommand(mend.Cmd)
 	rootCmd.AddCommand(modifymemory.Cmd)

@@ -1,0 +1,45 @@
+package views
+
+import (
+	"database/sql"
+	"fmt"
+
+	"github.com/emiliopalmerini/grimorio/internal/metrics/db"
+)
+
+func formatTime(t sql.NullTime) string {
+	if !t.Valid {
+		return ""
+	}
+	return t.Time.Format("Jan 2, 15:04")
+}
+
+templ History(commands []db.CommandExecution) {
+	if len(commands) == 0 {
+		<p class="empty-state">No recent activity</p>
+	} else {
+		<div class="history-list">
+			for _, cmd := range commands {
+				<div class="history-item">
+					<div class="history-main">
+						<span class="history-command mono">{ cmd.Command }</span>
+						<span class={ "badge", templ.KV("badge-spell", cmd.CommandType == "spell"), templ.KV("badge-cantrip", cmd.CommandType == "cantrip") }>
+							{ cmd.CommandType }
+						</span>
+					</div>
+					<div class="history-meta">
+						<span class="history-duration">{ fmt.Sprintf("%dms", cmd.DurationMs) }</span>
+						<span class={ "history-status", templ.KV("status-success", cmd.ExitCode == 0), templ.KV("status-error", cmd.ExitCode != 0) }>
+							if cmd.ExitCode == 0 {
+								success
+							} else {
+								failed
+							}
+						</span>
+						<span class="history-time">{ formatTime(cmd.ExecutedAt) }</span>
+					</div>
+				</div>
+			}
+		</div>
+	}
+}

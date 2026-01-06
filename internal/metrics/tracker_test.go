@@ -28,7 +28,7 @@ func TestSQLiteTracker(t *testing.T) {
 			t.Fatalf("RecordCommand (failure): %v", err)
 		}
 
-		summary, err := tracker.GetSummary(ctx, time.Now().Add(-time.Hour))
+		summary, err := tracker.GetSummary(ctx, Filter{From: time.Now().Add(-time.Hour)})
 		if err != nil {
 			t.Fatalf("GetSummary: %v", err)
 		}
@@ -55,7 +55,7 @@ func TestSQLiteTracker(t *testing.T) {
 			t.Fatalf("RecordAI (failure): %v", err)
 		}
 
-		summary, err := tracker.GetSummary(ctx, time.Now().Add(-time.Hour))
+		summary, err := tracker.GetSummary(ctx, Filter{From: time.Now().Add(-time.Hour)})
 		if err != nil {
 			t.Fatalf("GetSummary: %v", err)
 		}
@@ -78,7 +78,7 @@ func TestNoopTracker(t *testing.T) {
 		t.Errorf("RecordAI: %v", err)
 	}
 
-	summary, err := tracker.GetSummary(ctx, time.Time{})
+	summary, err := tracker.GetSummary(ctx, Filter{})
 	if err != nil {
 		t.Errorf("GetSummary: %v", err)
 	}

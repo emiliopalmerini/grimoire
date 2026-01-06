@@ -28,18 +28,18 @@ func init() {
 }
 
 func runStats(cmd *cobra.Command, args []string) error {
-	var since time.Time
+	var filter metrics.Filter
 	var periodLabel string
 
 	if days > 0 {
-		since = time.Now().AddDate(0, 0, -days)
+		filter.From = time.Now().AddDate(0, 0, -days)
 		periodLabel = fmt.Sprintf("last %d days", days)
 	} else {
-		since = time.Time{}
+		filter.From = time.Time{}
 		periodLabel = "all time"
 	}
 
-	summary, err := metrics.Default.GetSummary(context.Background(), since)
+	summary, err := metrics.Default.GetSummary(context.Background(), filter)
 	if err != nil {
 		return fmt.Errorf("failed to get stats: %w", err)
 	}

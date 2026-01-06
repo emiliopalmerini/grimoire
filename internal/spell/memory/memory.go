@@ -19,7 +19,6 @@ func GetRecentCommits(n int) (string, error) {
 	return git.GetRecentCommits(n, "%s")
 }
 
-
 func GenerateMessage(diff string, history string, description string) (string, error) {
 	prompt := `Analyze this git diff and generate a conventional commit message with title and body.
 

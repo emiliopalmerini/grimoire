@@ -1,0 +1,40 @@
+package views
+
+import (
+	"fmt"
+
+	"github.com/emiliopalmerini/grimorio/internal/metrics/db"
+)
+
+func getMaxCount(stats []db.GetAIStatsByModelRow) int64 {
+	var max int64 = 1
+	for _, s := range stats {
+		if s.Count > max {
+			max = s.Count
+		}
+	}
+	return max
+}
+
+templ Models(stats []db.GetAIStatsByModelRow) {
+	if len(stats) == 0 {
+		<p class="empty-state">No AI usage data yet</p>
+	} else {
+		<div class="model-stats">
+			for _, stat := range stats {
+				<div class="model-row">
+					<div class="model-info">
+						<span class="model-name mono">{ stat.Model }</span>
+						<span class="model-count">{ fmt.Sprintf("%d calls", stat.Count) }</span>
+					</div>
+					<div class="model-bar-container">
+						<div class="model-bar" style={ fmt.Sprintf("width: %.0f%%", float64(stat.Count)/float64(getMaxCount(stats))*100) }></div>
+					</div>
+					<div class="model-details">
+						<span>{ fmt.Sprintf("%.0fms avg", stat.AvgLatencyMs) }</span>
+					</div>
+				</div>
+			}
+		</div>
+	}
+}

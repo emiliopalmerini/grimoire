@@ -1,0 +1,45 @@
+package views
+
+import "github.com/emiliopalmerini/grimorio/internal/metrics"
+
+templ Filters(commands []string, filter metrics.Filter) {
+	<section class="filters">
+		<form method="get" action="/" class="filter-form">
+			<div class="filter-group">
+				<label for="from">From</label>
+				<input
+					type="date"
+					id="from"
+					name="from"
+					value={ filter.From.Format("2006-01-02") }
+					if filter.From.IsZero() {
+						value=""
+					}
+				/>
+			</div>
+			<div class="filter-group">
+				<label for="to">To</label>
+				<input
+					type="date"
+					id="to"
+					name="to"
+					value={ filter.To.Format("2006-01-02") }
+					if filter.To.IsZero() {
+						value=""
+					}
+				/>
+			</div>
+			<div class="filter-group">
+				<label for="command">Command</label>
+				<select id="command" name="command">
+					<option value="">All commands</option>
+					for _, cmd := range commands {
+						<option value={ cmd } selected?={ cmd == filter.Command }>{ cmd }</option>
+					}
+				</select>
+			</div>
+			<button type="submit" class="filter-btn">Apply</button>
+			<a href="/" class="filter-reset">Reset</a>
+		</form>
+	</section>
+}

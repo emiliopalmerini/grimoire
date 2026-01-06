@@ -1,0 +1,60 @@
+package views
+
+import (
+	"github.com/emiliopalmerini/grimorio/internal/metrics"
+	"github.com/emiliopalmerini/grimorio/internal/metrics/db"
+)
+
+type DashboardData struct {
+	Summary          metrics.Summary
+	ModelStats       []db.GetAIStatsByModelRow
+	RecentCommands   []db.CommandExecution
+	DistinctCommands []string
+	Filter           metrics.Filter
+}
+
+func buildQueryString(filter metrics.Filter) string {
+	q := ""
+	if !filter.From.IsZero() {
+		q += "from=" + filter.From.Format("2006-01-02")
+	}
+	if !filter.To.IsZero() {
+		if q != "" {
+			q += "&"
+		}
+		q += "to=" + filter.To.Format("2006-01-02")
+	}
+	if filter.Command != "" {
+		if q != "" {
+			q += "&"
+		}
+		q += "command=" + filter.Command
+	}
+	if q != "" {
+		return "?" + q
+	}
+	return ""
+}
+
+templ Dashboard(data DashboardData) {
+	<div class="dashboard">
+		@Filters(data.DistinctCommands, data.Filter)
+		<section class="section" id="stats" hx-get={ "/stats" + buildQueryString(data.Filter) } hx-trigger="every 30s" hx-swap="innerHTML">
+			@Stats(data.Summary)
+		</section>
+		<div class="grid-2">
+			<section class="section" id="commands" hx-get={ "/commands" + buildQueryString(data.Filter) } hx-trigger="every 30s" hx-swap="innerHTML">
+				<h2 class="section-title">Commands</h2>
+				@Commands(data.Summary.CommandStats)
+			</section>
+			<section class="section" id="models" hx-get={ "/models" + buildQueryString(data.Filter) } hx-trigger="every 30s" hx-swap="innerHTML">
+				<h2 class="section-title">AI Models</h2>
+				@Models(data.ModelStats)
+			</section>
+		</div>
+		<section class="section" id="history" hx-get={ "/history" + buildQueryString(data.Filter) } hx-trigger="every 30s" hx-swap="innerHTML">
+			<h2 class="section-title">Recent Activity</h2>
+			@History(data.RecentCommands)
+		</section>
+	</div>
+}

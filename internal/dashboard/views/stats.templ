@@ -1,0 +1,34 @@
+package views
+
+import (
+	"fmt"
+
+	"github.com/emiliopalmerini/grimorio/internal/metrics"
+)
+
+templ Stats(summary metrics.Summary) {
+	<div class="stats-grid">
+		<div class="stat-card">
+			<span class="stat-label">Total Commands</span>
+			<span class="stat-value">{ fmt.Sprintf("%d", summary.TotalCommands) }</span>
+		</div>
+		<div class="stat-card">
+			<span class="stat-label">Success Rate</span>
+			<span class="stat-value">
+				if summary.TotalCommands > 0 {
+					{ fmt.Sprintf("%.1f%%", float64(summary.TotalCommands-summary.TotalFailures)/float64(summary.TotalCommands)*100) }
+				} else {
+					100%
+				}
+			</span>
+		</div>
+		<div class="stat-card">
+			<span class="stat-label">AI Calls</span>
+			<span class="stat-value">{ fmt.Sprintf("%d", summary.TotalAICalls) }</span>
+		</div>
+		<div class="stat-card">
+			<span class="stat-label">Avg Latency</span>
+			<span class="stat-value">{ fmt.Sprintf("%.0fms", summary.AvgLatencyMs) }</span>
+		</div>
+	</div>
+}
