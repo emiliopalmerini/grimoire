@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/emiliopalmerini/grimorio/internal/editor"
 	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/emiliopalmerini/grimorio/internal/spell/sealmemory"
 	"github.com/spf13/cobra"
@@ -124,39 +125,12 @@ func promptAction() (string, error) {
 }
 
 func editContent(title, body string) (string, string, error) {
-	editor := os.Getenv("EDITOR")
-	if editor == "" {
-		editor = "vim"
-	}
-
 	content := title + "\n\n" + body
-
-	tmpfile, err := os.CreateTemp("", "pr-description-*.md")
+	edited, err := editor.Edit(content, "pr-description-*.md")
 	if err != nil {
 		return "", "", err
 	}
-	defer os.Remove(tmpfile.Name())
-
-	if _, err := tmpfile.WriteString(content); err != nil {
-		return "", "", err
-	}
-	tmpfile.Close()
-
-	cmd := exec.Command(editor, tmpfile.Name())
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return "", "", fmt.Errorf("editor failed: %w", err)
-	}
-
-	edited, err := os.ReadFile(tmpfile.Name())
-	if err != nil {
-		return "", "", err
-	}
-
-	newTitle, newBody := sealmemory.ParseTitleBody(string(edited))
+	newTitle, newBody := sealmemory.ParseTitleBody(edited)
 	return newTitle, newBody, nil
 }
 

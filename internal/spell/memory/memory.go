@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/emiliopalmerini/grimorio/internal/claude"
+	"github.com/emiliopalmerini/grimorio/internal/editor"
 	"github.com/emiliopalmerini/grimorio/internal/git"
 	"github.com/emiliopalmerini/grimorio/internal/textutil"
 )
@@ -90,37 +90,7 @@ func Confirm(message string) (bool, bool, error) {
 }
 
 func EditMessage(message string) (string, error) {
-	editor := os.Getenv("EDITOR")
-	if editor == "" {
-		editor = "vim"
-	}
-
-	tmpfile, err := os.CreateTemp("", "commit-msg-*.txt")
-	if err != nil {
-		return "", err
-	}
-	defer os.Remove(tmpfile.Name())
-
-	if _, err := tmpfile.WriteString(message); err != nil {
-		return "", err
-	}
-	tmpfile.Close()
-
-	cmd := exec.Command(editor, tmpfile.Name())
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("editor failed: %w", err)
-	}
-
-	edited, err := os.ReadFile(tmpfile.Name())
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(string(edited)), nil
+	return editor.Edit(message, "commit-msg-*.txt")
 }
 
 func Commit(message string, stageAll bool) error {
