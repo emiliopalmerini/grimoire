@@ -10,6 +10,7 @@ import (
 	"github.com/emiliopalmerini/grimorio/cmd/mend"
 	modifymemory "github.com/emiliopalmerini/grimorio/cmd/modify-memory"
 	"github.com/emiliopalmerini/grimorio/cmd/scry"
+	sealmemory "github.com/emiliopalmerini/grimorio/cmd/seal-memory"
 	"github.com/emiliopalmerini/grimorio/cmd/stats"
 	"github.com/emiliopalmerini/grimorio/cmd/summon"
 	"github.com/emiliopalmerini/grimorio/cmd/transmute"
@@ -44,6 +45,7 @@ func init() {
 	rootCmd.AddCommand(mend.Cmd)
 	rootCmd.AddCommand(modifymemory.Cmd)
 	rootCmd.AddCommand(scry.Cmd)
+	rootCmd.AddCommand(sealmemory.Cmd)
 	rootCmd.AddCommand(stats.Cmd)
 	rootCmd.AddCommand(summon.Cmd)
 	rootCmd.AddCommand(transmute.Cmd)

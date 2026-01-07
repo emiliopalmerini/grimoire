@@ -123,3 +123,47 @@ func Commit(message string) error {
 	}
 	return nil
 }
+
+func GetCurrentBranch() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current branch: %w", err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+func GetBaseBranch() (string, error) {
+	for _, candidate := range []string{"main", "master"} {
+		cmd := exec.Command("git", "rev-parse", "--verify", candidate)
+		if err := cmd.Run(); err == nil {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf("no main or master branch found")
+}
+
+func GetBranchDiff(base string, maxLines int) (string, error) {
+	cmd := exec.Command("git", "diff", base+"...HEAD")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get branch diff: %w", err)
+	}
+	diff := strings.TrimSpace(string(out))
+	if diff == "" {
+		return "", ErrNoChanges
+	}
+	if maxLines > 0 {
+		diff = TruncateDiff(diff, maxLines)
+	}
+	return diff, nil
+}
+
+func GetBranchCommits(base string) (string, error) {
+	cmd := exec.Command("git", "log", base+"..HEAD", "--pretty=format:%s%n%b---")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get branch commits: %w", err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}

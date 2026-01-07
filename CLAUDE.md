@@ -113,6 +113,17 @@ grimorio modify-memory -a
 
 Analyzes staged changes, fetches recent commit history for style matching, asks for motivation, and generates conventional commit messages.
 
+### Seal-Memory (AI PR Description)
+
+```bash
+grimorio seal-memory
+grimorio seal-memory -m "Added authentication"
+grimorio seal-memory -n
+grimorio seal-memory --base develop
+```
+
+Compares current branch against main/master, analyzes commits and diff, generates PR title and description. Options: create PR via `gh`, edit in `$EDITOR`, or copy to clipboard.
+
 ### Divine (Code Explanation)
 
 ```bash
