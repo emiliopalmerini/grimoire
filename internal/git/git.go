@@ -38,8 +38,26 @@ func (r ExecRepository) Commit(message string) error {
 var DefaultRepository Repository = ExecRepository{}
 
 type DiffOptions struct {
-	All    bool
-	Staged bool
+	All      bool
+	Staged   bool
+	MaxLines int // 0 = unlimited
+}
+
+const DefaultMaxDiffLines = 500
+
+func TruncateDiff(diff string, maxLines int) string {
+	if maxLines <= 0 || diff == "" {
+		return diff
+	}
+
+	lines := strings.Split(diff, "\n")
+	if len(lines) <= maxLines {
+		return diff
+	}
+
+	truncated := strings.Join(lines[:maxLines], "\n")
+	omitted := len(lines) - maxLines
+	return truncated + fmt.Sprintf("\n\n[... %d lines omitted, showing first %d of %d total lines ...]", omitted, maxLines, len(lines))
 }
 
 func GetDiff(opts DiffOptions) (string, error) {
@@ -69,6 +87,10 @@ func GetDiff(opts DiffOptions) (string, error) {
 			return "", ErrNoStagedChanges
 		}
 		return "", ErrNoChanges
+	}
+
+	if opts.MaxLines > 0 {
+		diff = TruncateDiff(diff, opts.MaxLines)
 	}
 
 	return diff, nil

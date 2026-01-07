@@ -11,8 +11,10 @@ import (
 	"github.com/emiliopalmerini/grimorio/internal/git"
 )
 
+const maxDiffLines = 500
+
 func GetDiff(all bool) (string, error) {
-	return git.GetDiff(git.DiffOptions{All: all})
+	return git.GetDiff(git.DiffOptions{All: all, MaxLines: maxDiffLines})
 }
 
 func GetRecentCommits(n int) (string, error) {

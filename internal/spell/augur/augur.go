@@ -5,9 +5,15 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/emiliopalmerini/grimorio/internal/claude"
 	"github.com/emiliopalmerini/grimorio/internal/git"
+)
+
+const (
+	maxOutputLines = 100
+	maxDiffLines   = 200
 )
 
 type Result struct {
@@ -15,6 +21,19 @@ type Result struct {
 	ExitCode int
 	Stdout   string
 	Stderr   string
+}
+
+func truncateTail(s string, maxLines int) string {
+	if s == "" || maxLines <= 0 {
+		return s
+	}
+	lines := strings.Split(s, "\n")
+	if len(lines) <= maxLines {
+		return s
+	}
+	omitted := len(lines) - maxLines
+	kept := lines[omitted:]
+	return fmt.Sprintf("[... %d lines omitted, showing last %d ...]\n", omitted, maxLines) + strings.Join(kept, "\n")
 }
 
 func RunCommand(command string) (*Result, error) {
@@ -45,31 +64,39 @@ func Analyze(result *Result) (string, error) {
 		return "Command succeeded with no errors.", nil
 	}
 
-	prompt := fmt.Sprintf(`Analyze this command output and explain any errors or warnings.
-Suggest fixes if possible.
-
-Command: %s
-Exit code: %d
-
-`, result.Command, result.ExitCode)
+	prompt := fmt.Sprintf("Analyze errors/warnings and suggest fixes.\n\nCommand: %s\nExit code: %d\n\n", result.Command, result.ExitCode)
 
 	if result.Stderr != "" {
-		prompt += "Stderr:\n" + result.Stderr + "\n\n"
+		prompt += "Stderr:\n" + truncateTail(result.Stderr, maxOutputLines) + "\n\n"
 	}
 	if result.Stdout != "" {
-		prompt += "Stdout:\n" + result.Stdout + "\n\n"
+		prompt += "Stdout:\n" + truncateTail(result.Stdout, maxOutputLines) + "\n\n"
 	}
 
-	history, _ := git.GetRecentCommits(5, "%h %s")
-	if history != "" {
-		prompt += "Recent commits:\n" + history + "\n\n"
-	}
-
-	diff, _ := git.GetDiff(git.DiffOptions{All: true})
-	if diff != "" {
-		prompt += "Current changes:\n" + diff
+	errorOutput := result.Stderr + result.Stdout
+	if looksCodeRelated(errorOutput) {
+		diff, _ := git.GetDiff(git.DiffOptions{All: true, MaxLines: maxDiffLines})
+		if diff != "" {
+			prompt += "Recent changes:\n" + diff
+		}
 	}
 
 	claude.SetCommand("augur")
 	return claude.Run(claude.Sonnet, prompt)
+}
+
+func looksCodeRelated(output string) bool {
+	codePatterns := []string{
+		"undefined", "not found", "cannot find", "no such file",
+		"syntax error", "unexpected", "expected", "undeclared",
+		"import", "package", "module", "type", "func", "class",
+		".go:", ".py:", ".ts:", ".js:", ".rs:", ".java:",
+	}
+	lower := strings.ToLower(output)
+	for _, p := range codePatterns {
+		if strings.Contains(lower, p) {
+			return true
+		}
+	}
+	return false
 }
