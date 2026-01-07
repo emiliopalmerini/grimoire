@@ -103,7 +103,7 @@ func GetRecentCommits(n int, format string) (string, error) {
 	cmd := exec.Command("git", "log", fmt.Sprintf("-%d", n), "--pretty=format:"+format)
 	out, err := cmd.Output()
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	return strings.TrimSpace(string(out)), nil
 }
