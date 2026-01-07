@@ -1,4 +1,4 @@
-package memory
+package textutil
 
 import "testing"
 
@@ -47,9 +47,9 @@ func TestStripCodeBlock(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := stripCodeBlock(tt.input)
+			got := StripCodeBlock(tt.input)
 			if got != tt.want {
-				t.Errorf("stripCodeBlock() = %q, want %q", got, tt.want)
+				t.Errorf("StripCodeBlock() = %q, want %q", got, tt.want)
 			}
 		})
 	}

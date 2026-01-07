@@ -68,12 +68,12 @@ func createDirectories(projectDir string, opts ProjectOptions) error {
 		filepath.Join(projectDir, ".github", "workflows"),
 	}
 
-	if hasTransport(opts.Transports, "grpc") {
+	if slices.Contains(opts.Transports, "grpc") {
 		dirs = append(dirs, filepath.Join(projectDir, "api", "proto", "v1"))
 		dirs = append(dirs, filepath.Join(projectDir, "gen", "proto", "v1"))
 	}
 
-	if hasTransport(opts.Transports, "amqp") {
+	if slices.Contains(opts.Transports, "amqp") {
 		dirs = append(dirs, filepath.Join(projectDir, "internal", "infra"))
 	}
 
@@ -102,17 +102,17 @@ func createFiles(projectDir string, opts ProjectOptions) error {
 		filepath.Join(projectDir, ".github", "workflows", "ci.yml"):  ciWorkflowTemplate(opts.Name, opts.GoVersion, opts),
 	}
 
-	if hasTransport(opts.Transports, "http") {
+	if slices.Contains(opts.Transports, "http") {
 		files[filepath.Join(projectDir, "internal", "server", "http.go")] = httpServerTemplate(opts.ModulePath, opts)
 	}
 
-	if hasTransport(opts.Transports, "grpc") {
+	if slices.Contains(opts.Transports, "grpc") {
 		files[filepath.Join(projectDir, "internal", "server", "grpc.go")] = grpcServerTemplate(opts.ModulePath)
 		files[filepath.Join(projectDir, "buf.yaml")] = bufYamlTemplate()
 		files[filepath.Join(projectDir, "buf.gen.yaml")] = bufGenYamlTemplate()
 	}
 
-	if hasTransport(opts.Transports, "amqp") {
+	if slices.Contains(opts.Transports, "amqp") {
 		files[filepath.Join(projectDir, "internal", "infra", "rabbitmq.go")] = rabbitmqTemplate()
 	}
 
@@ -121,7 +121,7 @@ func createFiles(projectDir string, opts ProjectOptions) error {
 	files[filepath.Join(projectDir, "internal", "middleware", "recovery.go")] = recoveryMiddlewareTemplate()
 	files[filepath.Join(projectDir, "internal", "middleware", "requestid.go")] = requestIDMiddlewareTemplate()
 
-	if opts.Type == "api" && hasTransport(opts.Transports, "http") {
+	if opts.Type == "api" && slices.Contains(opts.Transports, "http") {
 		files[filepath.Join(projectDir, "internal", "middleware", "cors.go")] = corsMiddlewareTemplate()
 	}
 
@@ -138,8 +138,4 @@ func createFiles(projectDir string, opts ProjectOptions) error {
 	}
 
 	return nil
-}
-
-func hasTransport(transports []string, t string) bool {
-	return slices.Contains(transports, t)
 }

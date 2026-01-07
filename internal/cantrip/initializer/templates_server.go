@@ -1,6 +1,9 @@
 package initializer
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 func healthTemplate() string {
 	return `package server
@@ -105,12 +108,12 @@ func mainTemplate(modulePath string, opts ProjectOptions) string {
 	"os/signal"
 	"syscall"`
 
-	if hasTransport(opts.Transports, "http") {
+	if slices.Contains(opts.Transports, "http") {
 		imports += `
 	"net/http"`
 	}
 
-	if hasTransport(opts.Transports, "grpc") {
+	if slices.Contains(opts.Transports, "grpc") {
 		imports += `
 	"net"`
 	}
@@ -129,7 +132,7 @@ func mainTemplate(modulePath string, opts ProjectOptions) string {
 	serverStart := ""
 	serverShutdown := ""
 
-	if hasTransport(opts.Transports, "http") {
+	if slices.Contains(opts.Transports, "http") {
 		sessionManagerInit := ""
 		sessionManagerParam := ""
 		if opts.Type == "web" {
@@ -155,7 +158,7 @@ func mainTemplate(modulePath string, opts ProjectOptions) string {
 	}`
 	}
 
-	if hasTransport(opts.Transports, "grpc") {
+	if slices.Contains(opts.Transports, "grpc") {
 		serverStart += `
 	grpcSrv := server.NewGRPCServer()
 	grpcLis, err := net.Listen("tcp", cfg.GRPCAddr)

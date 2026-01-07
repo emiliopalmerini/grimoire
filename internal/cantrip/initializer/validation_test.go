@@ -116,16 +116,3 @@ func TestProjectOptionsValidate(t *testing.T) {
 	}
 }
 
-func TestHasTransport(t *testing.T) {
-	transports := []string{"http", "grpc"}
-
-	if !hasTransport(transports, "http") {
-		t.Error("Expected hasTransport to return true for 'http'")
-	}
-	if !hasTransport(transports, "grpc") {
-		t.Error("Expected hasTransport to return true for 'grpc'")
-	}
-	if hasTransport(transports, "amqp") {
-		t.Error("Expected hasTransport to return false for 'amqp'")
-	}
-}

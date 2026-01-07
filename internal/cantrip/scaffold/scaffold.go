@@ -124,7 +124,7 @@ func createDirectories(moduleDir string, opts ModuleOptions) error {
 		dirs = append(dirs, filepath.Join(moduleDir, "views"))
 	}
 
-	if hasTransport(opts.Transports, "grpc") {
+	if slices.Contains(opts.Transports, "grpc") {
 		cwd, err := os.Getwd()
 		if err != nil {
 			return fmt.Errorf("failed to get current directory: %w", err)
@@ -163,12 +163,12 @@ func createFiles(moduleDir string, opts ModuleOptions, goModulePath string) erro
 		}
 	}
 
-	if hasTransport(opts.Transports, "http") {
+	if slices.Contains(opts.Transports, "http") {
 		files[filepath.Join(moduleDir, "handler.go")] = httpHandlerTemplate(name, namePascal, moduleImportPath)
 		files[filepath.Join(moduleDir, "routes.go")] = httpRoutesTemplate(name)
 	}
 
-	if hasTransport(opts.Transports, "grpc") {
+	if slices.Contains(opts.Transports, "grpc") {
 		files[filepath.Join(moduleDir, "grpc_server.go")] = grpcServerTemplate(name, namePascal, goModulePath)
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -177,7 +177,7 @@ func createFiles(moduleDir string, opts ModuleOptions, goModulePath string) erro
 		files[filepath.Join(cwd, "api", "proto", "v1", name+".proto")] = protoTemplate(name, namePascal, goModulePath)
 	}
 
-	if hasTransport(opts.Transports, "amqp") {
+	if slices.Contains(opts.Transports, "amqp") {
 		files[filepath.Join(moduleDir, "consumer.go")] = amqpConsumerTemplate(name, namePascal, moduleImportPath)
 	}
 
@@ -203,8 +203,4 @@ func toPascalCase(s string) string {
 		}
 	}
 	return strings.Join(parts, "")
-}
-
-func hasTransport(transports []string, t string) bool {
-	return slices.Contains(transports, t)
 }

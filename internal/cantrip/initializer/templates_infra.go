@@ -1,6 +1,9 @@
 package initializer
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 func ciWorkflowTemplate(name, goVersion string, opts ProjectOptions) string {
 	templStep := ""
@@ -15,7 +18,7 @@ func ciWorkflowTemplate(name, goVersion string, opts ProjectOptions) string {
 	}
 
 	bufStep := ""
-	if hasTransport(opts.Transports, "grpc") {
+	if slices.Contains(opts.Transports, "grpc") {
 		bufStep = `
       - name: Install Buf
         uses: bufbuild/buf-setup-action@v1

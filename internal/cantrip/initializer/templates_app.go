@@ -1,17 +1,20 @@
 package initializer
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 func appTemplate(opts ProjectOptions) string {
 	fields := `	Addr            string        ` + "`envconfig:\"ADDR\" default:\":8080\"`" + `
 	ShutdownTimeout time.Duration ` + "`envconfig:\"SHUTDOWN_TIMEOUT\" default:\"5s\"`"
 
-	if hasTransport(opts.Transports, "grpc") {
+	if slices.Contains(opts.Transports, "grpc") {
 		fields += `
 	GRPCAddr string ` + "`envconfig:\"GRPC_ADDR\" default:\":9090\"`"
 	}
 
-	if hasTransport(opts.Transports, "amqp") {
+	if slices.Contains(opts.Transports, "amqp") {
 		fields += `
 	AMQPURL string ` + "`envconfig:\"AMQP_URL\" default:\"amqp://guest:guest@localhost:5672/\"`"
 	}

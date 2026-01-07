@@ -1,6 +1,9 @@
 package initializer
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 func goModTemplate(modulePath, goVersion string, opts ProjectOptions) string {
 	deps := `
@@ -8,7 +11,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/google/uuid v1.6.0
 `
-	if hasTransport(opts.Transports, "http") {
+	if slices.Contains(opts.Transports, "http") {
 		deps += `	github.com/go-chi/chi/v5 v5.1.0
 `
 	}
@@ -18,13 +21,13 @@ require (
 `
 	}
 
-	if hasTransport(opts.Transports, "grpc") {
+	if slices.Contains(opts.Transports, "grpc") {
 		deps += `	google.golang.org/grpc v1.68.0
 	google.golang.org/protobuf v1.35.2
 `
 	}
 
-	if hasTransport(opts.Transports, "amqp") {
+	if slices.Contains(opts.Transports, "amqp") {
 		deps += `	github.com/rabbitmq/amqp091-go v1.10.0
 `
 	}
@@ -115,7 +118,7 @@ func flakeTemplate(goVersion string, opts ProjectOptions) string {
 	}
 
 	packages := fmt.Sprintf("pkgs.%s", nixGoVersion)
-	if hasTransport(opts.Transports, "grpc") {
+	if slices.Contains(opts.Transports, "grpc") {
 		packages += " pkgs.buf pkgs.protobuf"
 	}
 	if opts.Type == "web" {
