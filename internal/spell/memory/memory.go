@@ -22,16 +22,36 @@ func GetRecentCommits(n int) (string, error) {
 }
 
 func GenerateMessage(diff string, history string, description string) (string, error) {
-	prompt := `Generate a conventional commit message (type(scope): description + body).
-Types: feat/fix/docs/style/refactor/test/chore. Title under 50 chars. No emojis. Output only the message.
+	prompt := `Analyze this git diff and generate a conventional commit message with title and body.
+
+Rules:
+- Use conventional commits format for the title: type(scope): description
+- Types: feat, fix, docs, style, refactor, test, chore
+- Keep the title under 50 characters
+- Add a blank line after the title
+- Write a concise body explaining what changed and why
+- Focus on the "why" not the "what"
+- Do not use emojis
+- Output ONLY the commit message (title + body), nothing else
 `
+
 	if history != "" {
-		prompt += "\nRecent commits:\n" + history + "\n"
+		prompt += `
+Recent commits (match this style):
+` + history + `
+`
 	}
+
 	if description != "" {
-		prompt += "\nContext: " + description + "\n"
+		prompt += `
+User motivation:
+` + description + `
+`
 	}
-	prompt += "\nDiff:\n" + diff
+
+	prompt += `
+Diff:
+` + diff
 
 	claude.SetCommand("modify-memory")
 	msg, err := claude.Run(claude.Haiku, prompt)
