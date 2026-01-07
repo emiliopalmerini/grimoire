@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/emiliopalmerini/grimorio/internal/clipboard"
 	"github.com/emiliopalmerini/grimorio/internal/editor"
 	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/emiliopalmerini/grimorio/internal/spell/sealmemory"
@@ -94,7 +95,12 @@ func runSealMemory(cmd *cobra.Command, args []string) error {
 				fmt.Printf("\n--- PR Title ---\n%s\n\n--- PR Body ---\n%s\n", title, body)
 				continue
 			case "copy":
-				return copyToClipboard(title, body)
+				content := title + "\n\n" + body
+				if err := clipboard.Copy(content); err != nil {
+					return err
+				}
+				fmt.Println("Copied to clipboard!")
+				return nil
 			default:
 				fmt.Println("Cancelled.")
 				return nil
@@ -146,33 +152,3 @@ func createPR(base, title, body string) error {
 	return nil
 }
 
-func copyToClipboard(title, body string) error {
-	content := title + "\n\n" + body
-
-	var cmd *exec.Cmd
-	switch {
-	case commandExists("pbcopy"):
-		cmd = exec.Command("pbcopy")
-	case commandExists("xclip"):
-		cmd = exec.Command("xclip", "-selection", "clipboard")
-	case commandExists("xsel"):
-		cmd = exec.Command("xsel", "--clipboard", "--input")
-	case commandExists("wl-copy"):
-		cmd = exec.Command("wl-copy")
-	default:
-		return fmt.Errorf("no clipboard utility found (install xclip, xsel, or wl-copy)")
-	}
-
-	cmd.Stdin = strings.NewReader(content)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to copy to clipboard: %w", err)
-	}
-
-	fmt.Println("Copied to clipboard!")
-	return nil
-}
-
-func commandExists(name string) bool {
-	_, err := exec.LookPath(name)
-	return err == nil
-}
