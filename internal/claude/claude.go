@@ -22,26 +22,20 @@ const (
 // Runner defines the interface for running Claude prompts.
 // This allows for mocking in tests.
 type Runner interface {
-	Run(model Model, prompt string) (string, error)
+	Run(model Model, command, prompt string) (string, error)
 }
 
 // ExecRunner implements Runner using the actual Claude CLI.
 type ExecRunner struct{}
 
-func (r ExecRunner) Run(model Model, prompt string) (string, error) {
-	return Run(model, prompt)
+func (r ExecRunner) Run(model Model, command, prompt string) (string, error) {
+	return Run(model, command, prompt)
 }
 
 // DefaultRunner is the default Runner implementation.
 var DefaultRunner Runner = ExecRunner{}
 
-var currentCommand string
-
-func SetCommand(cmd string) {
-	currentCommand = cmd
-}
-
-func Run(model Model, prompt string) (string, error) {
+func Run(model Model, command, prompt string) (string, error) {
 	start := time.Now()
 	cmd := exec.Command("claude", "-p", "--no-session-persistence", "--model", string(model), prompt)
 	var stdout, stderr bytes.Buffer
@@ -52,16 +46,15 @@ func Run(model Model, prompt string) (string, error) {
 	latency := time.Since(start).Milliseconds()
 	response := strings.TrimSpace(stdout.String())
 
-	cmdName := currentCommand
-	if cmdName == "" {
-		cmdName = "unknown"
+	if command == "" {
+		command = "unknown"
 	}
 
 	if err != nil {
-		metrics.Default.RecordAI(context.Background(), cmdName, string(model), len(prompt), 0, latency, false, err.Error())
+		metrics.Default.RecordAI(context.Background(), command, string(model), len(prompt), 0, latency, false, err.Error())
 		return "", fmt.Errorf("claude failed: %w\n%s", err, stderr.String())
 	}
 
-	metrics.Default.RecordAI(context.Background(), cmdName, string(model), len(prompt), len(response), latency, true, "")
+	metrics.Default.RecordAI(context.Background(), command, string(model), len(prompt), len(response), latency, true, "")
 	return response, nil
 }

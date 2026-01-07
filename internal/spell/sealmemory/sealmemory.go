@@ -66,8 +66,7 @@ Branch commits:
 Diff:
 ` + diff
 
-	claude.SetCommand("seal-memory")
-	msg, err := claude.Run(claude.Haiku, prompt)
+	msg, err := claude.Run(claude.Haiku, "seal-memory", prompt)
 	if err != nil {
 		return "", err
 	}

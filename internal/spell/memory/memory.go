@@ -52,8 +52,7 @@ User motivation:
 Diff:
 ` + diff
 
-	claude.SetCommand("modify-memory")
-	msg, err := claude.Run(claude.Haiku, prompt)
+	msg, err := claude.Run(claude.Haiku, "modify-memory", prompt)
 	if err != nil {
 		return "", err
 	}

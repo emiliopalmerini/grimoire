@@ -81,8 +81,7 @@ func Analyze(result *Result) (string, error) {
 		}
 	}
 
-	claude.SetCommand("augur")
-	return claude.Run(claude.Sonnet, prompt)
+	return claude.Run(claude.Sonnet, "augur", prompt)
 }
 
 func looksCodeRelated(output string) bool {

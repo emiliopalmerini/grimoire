@@ -24,6 +24,5 @@ If there are issues, list them with file and context.
 Diff:
 ` + diff
 
-	claude.SetCommand("scry")
-	return claude.Run(claude.Opus, prompt)
+	return claude.Run(claude.Opus, "scry", prompt)
 }
