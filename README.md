@@ -4,8 +4,8 @@ A CLI spellbook for developer productivity.
 
 ## Cantrips vs Spells
 
-- **Cantrips**: Deterministic, code-only commands (conjure, summon, mend, transmute)
-- **Spells**: AI-powered commands using Claude Code (modify-memory, divine, scry, augur)
+- **Cantrips**: Deterministic, code-only commands (conjure, summon, mending, polymorph)
+- **Spells**: AI-powered commands using Claude Code (modify-memory, sending, identify, scrying, augury)
 
 ## Installation
 
@@ -55,16 +55,16 @@ grimorio conjure order --transport=http,amqp
 | `--api, -a` | `json` | API type: `json`, `html` |
 | `--persistence, -p` | - | Persistence: `sqlite`, `postgres`, `mongodb` |
 
-### transmute
+### polymorph
 
-Convert data between formats:
+Transform data between formats:
 
 ```bash
-grimorio transmute data.json --to yaml
-grimorio transmute config.xml --to json
-grimorio transmute users.csv --to markdown
-grimorio transmute table.html --to json
-cat data.json | grimorio transmute --from json --to xml
+grimorio polymorph data.json --to yaml
+grimorio polymorph config.xml --to json
+grimorio polymorph users.csv --to markdown
+grimorio polymorph table.html --to json
+cat data.json | grimorio polymorph --from json --to xml
 ```
 
 Supported formats (all read/write):
@@ -76,15 +76,15 @@ Supported formats (all read/write):
 | `--from, -f` | Input format (auto-detected from extension) |
 | `--output, -o` | Output file (default: stdout) |
 
-### mend
+### mending
 
 Format files using LSP servers (organizes imports + formats):
 
 ```bash
-grimorio mend file.go
-grimorio mend ./internal/...
-grimorio mend --check .
-grimorio mend --diff file.py
+grimorio mending file.go
+grimorio mending ./internal/...
+grimorio mending --check .
+grimorio mending --diff file.py
 ```
 
 Supported: Go, Python, Rust, C#, TypeScript, JavaScript, HTML, JSON, YAML, Nix, Lua
@@ -113,40 +113,57 @@ grimorio modify-memory -n
 | `--all, -a` | Include all changes, not just staged |
 | `--dry-run, -n` | Output message only, don't commit |
 
-### divine
+### sending
+
+Generate PR description from branch changes:
+
+```bash
+grimorio sending
+grimorio sending -m "Added authentication"
+grimorio sending -n
+grimorio sending --base develop
+```
+
+| Flag | Description |
+|------|-------------|
+| `--description, -m` | Additional context for the PR |
+| `--dry-run, -n` | Output description without creating PR |
+| `--base, -b` | Base branch to compare against |
+
+### identify
 
 Explain code in plain language:
 
 ```bash
-grimorio divine main.go
-grimorio divine internal/auth/auth.go
-grimorio divine handler.go --symbol HandleLogin
+grimorio identify main.go
+grimorio identify internal/auth/auth.go
+grimorio identify handler.go --symbol HandleLogin
 ```
 
 | Flag | Description |
 |------|-------------|
 | `--symbol, -s` | Focus on a specific function/type |
 
-### scry
+### scrying
 
 Review staged changes for bugs and issues:
 
 ```bash
-grimorio scry
-grimorio scry -a
+grimorio scrying
+grimorio scrying -a
 ```
 
 | Flag | Description |
 |------|-------------|
 | `--all, -a` | Include all changes, not just staged |
 
-### augur
+### augury
 
 Run a command and analyze errors:
 
 ```bash
-grimorio augur "go build"
-grimorio augur "npm test"
-grimorio augur "dotnet build"
-grimorio augur "cargo check"
+grimorio augury "go build"
+grimorio augury "npm test"
+grimorio augury "dotnet build"
+grimorio augury "cargo check"
 ```

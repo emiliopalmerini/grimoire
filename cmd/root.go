@@ -3,17 +3,17 @@ package cmd
 import (
 	"os"
 
-	"github.com/emiliopalmerini/grimorio/cmd/augur"
+	"github.com/emiliopalmerini/grimorio/cmd/augury"
 	"github.com/emiliopalmerini/grimorio/cmd/conjure"
 	"github.com/emiliopalmerini/grimorio/cmd/dashboard"
-	"github.com/emiliopalmerini/grimorio/cmd/divine"
-	"github.com/emiliopalmerini/grimorio/cmd/mend"
+	"github.com/emiliopalmerini/grimorio/cmd/identify"
+	"github.com/emiliopalmerini/grimorio/cmd/mending"
 	modifymemory "github.com/emiliopalmerini/grimorio/cmd/modify-memory"
-	"github.com/emiliopalmerini/grimorio/cmd/scry"
-	sealmemory "github.com/emiliopalmerini/grimorio/cmd/seal-memory"
+	"github.com/emiliopalmerini/grimorio/cmd/polymorph"
+	"github.com/emiliopalmerini/grimorio/cmd/scrying"
+	"github.com/emiliopalmerini/grimorio/cmd/sending"
 	"github.com/emiliopalmerini/grimorio/cmd/stats"
 	"github.com/emiliopalmerini/grimorio/cmd/summon"
-	"github.com/emiliopalmerini/grimorio/cmd/transmute"
 	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/spf13/cobra"
 )
@@ -38,15 +38,15 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.AddCommand(augur.Cmd)
+	rootCmd.AddCommand(augury.Cmd)
 	rootCmd.AddCommand(conjure.Cmd)
 	rootCmd.AddCommand(dashboard.Cmd)
-	rootCmd.AddCommand(divine.Cmd)
-	rootCmd.AddCommand(mend.Cmd)
+	rootCmd.AddCommand(identify.Cmd)
+	rootCmd.AddCommand(mending.Cmd)
 	rootCmd.AddCommand(modifymemory.Cmd)
-	rootCmd.AddCommand(scry.Cmd)
-	rootCmd.AddCommand(sealmemory.Cmd)
+	rootCmd.AddCommand(polymorph.Cmd)
+	rootCmd.AddCommand(scrying.Cmd)
+	rootCmd.AddCommand(sending.Cmd)
 	rootCmd.AddCommand(stats.Cmd)
 	rootCmd.AddCommand(summon.Cmd)
-	rootCmd.AddCommand(transmute.Cmd)
 }

@@ -74,28 +74,28 @@ Generated structure includes:
 
 Must be run from a Go project root containing `internal/` and `go.mod`.
 
-### Mend (LSP Formatting)
+### Mending (LSP Formatting)
 
 Formats files using LSP servers. Organizes imports and formats code.
 
 ```bash
-grimorio mend file.go
-grimorio mend ./internal/...
-grimorio mend --check .
-grimorio mend --diff file.py
+grimorio mending file.go
+grimorio mending ./internal/...
+grimorio mending --check .
+grimorio mending --diff file.py
 ```
 
 Supports: Go, Python, Rust, C#, TypeScript, JavaScript, HTML, JSON, YAML, Nix, Lua.
 
-### Transmute (Format Conversion)
+### Polymorph (Format Conversion)
 
-Converts data between formats: JSON, YAML, TOML, XML, CSV, Markdown, HTML.
+Transforms data between formats: JSON, YAML, TOML, XML, CSV, Markdown, HTML.
 
 ```bash
-grimorio transmute data.json --to yaml
-grimorio transmute config.xml --to json
-grimorio transmute users.json --to markdown
-cat data.json | grimorio transmute --from json --to xml
+grimorio polymorph data.json --to yaml
+grimorio polymorph config.xml --to json
+grimorio polymorph users.json --to markdown
+cat data.json | grimorio polymorph --from json --to xml
 ```
 
 All formats support both reading and writing.
@@ -113,40 +113,40 @@ grimorio modify-memory -a
 
 Analyzes staged changes, fetches recent commit history for style matching, asks for motivation, and generates conventional commit messages.
 
-### Seal-Memory (AI PR Description)
+### Sending (AI PR Description)
 
 ```bash
-grimorio seal-memory
-grimorio seal-memory -m "Added authentication"
-grimorio seal-memory -n
-grimorio seal-memory --base develop
+grimorio sending
+grimorio sending -m "Added authentication"
+grimorio sending -n
+grimorio sending --base develop
 ```
 
 Compares current branch against main/master, analyzes commits and diff, generates PR title and description. Options: create PR via `gh`, edit in `$EDITOR`, or copy to clipboard.
 
-### Divine (Code Explanation)
+### Identify (Code Explanation)
 
 ```bash
-grimorio divine main.go
-grimorio divine handler.go --symbol HandleLogin
+grimorio identify main.go
+grimorio identify handler.go --symbol HandleLogin
 ```
 
 Explains code in plain language. Optionally focus on a specific function/type.
 
-### Scry (Code Review)
+### Scrying (Code Review)
 
 ```bash
-grimorio scry
-grimorio scry -a
+grimorio scrying
+grimorio scrying -a
 ```
 
 Reviews staged changes for bugs, security issues, and code problems.
 
-### Augur (Error Analysis)
+### Augury (Error Analysis)
 
 ```bash
-grimorio augur "go build"
-grimorio augur "dotnet build"
+grimorio augury "go build"
+grimorio augury "dotnet build"
 ```
 
 Runs a command, captures output, and analyzes any errors with suggested fixes.
