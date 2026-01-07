@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/emiliopalmerini/grimorio/internal/clipboard"
 	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/emiliopalmerini/grimorio/internal/spell/augur"
 	"github.com/spf13/cobra"
@@ -52,6 +53,10 @@ func runAugur(cmd *cobra.Command, args []string) error {
 		}
 
 		fmt.Println(analysis)
+
+		if err := clipboard.Copy(analysis); err == nil {
+			fmt.Println("\n(Copied to clipboard)")
+		}
 		return nil
 	})
 }

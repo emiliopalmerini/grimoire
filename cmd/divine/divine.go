@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/emiliopalmerini/grimorio/internal/clipboard"
 	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/emiliopalmerini/grimorio/internal/spell/divine"
 	"github.com/spf13/cobra"
@@ -46,6 +47,10 @@ func runDivine(cmd *cobra.Command, args []string) error {
 		}
 
 		fmt.Println(explanation)
+
+		if err := clipboard.Copy(explanation); err == nil {
+			fmt.Println("\n(Copied to clipboard)")
+		}
 		return nil
 	})
 }

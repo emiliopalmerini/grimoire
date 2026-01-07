@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/emiliopalmerini/grimorio/internal/clipboard"
 	"github.com/emiliopalmerini/grimorio/internal/metrics"
 	"github.com/emiliopalmerini/grimorio/internal/spell/scry"
 	"github.com/spf13/cobra"
@@ -41,6 +42,10 @@ func runScry(cmd *cobra.Command, args []string) error {
 		}
 
 		fmt.Println(review)
+
+		if err := clipboard.Copy(review); err == nil {
+			fmt.Println("\n(Copied to clipboard)")
+		}
 		return nil
 	})
 }
