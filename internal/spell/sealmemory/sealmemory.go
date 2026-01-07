@@ -9,8 +9,6 @@ import (
 	"github.com/emiliopalmerini/grimorio/internal/textutil"
 )
 
-const maxDiffLines = 500
-
 func GetBranchInfo() (current, base string, err error) {
 	current, err = git.GetCurrentBranch()
 	if err != nil {
@@ -30,7 +28,7 @@ func GetBranchInfo() (current, base string, err error) {
 }
 
 func GetBranchDiff(base string) (string, error) {
-	return git.GetBranchDiff(base, maxDiffLines)
+	return git.GetBranchDiff(base, git.DefaultMaxDiffLines)
 }
 
 func GetBranchCommits(base string) (string, error) {

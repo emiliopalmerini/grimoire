@@ -118,4 +118,3 @@ func TestModuleOptionsValidate(t *testing.T) {
 		})
 	}
 }
-

@@ -12,10 +12,8 @@ import (
 	"github.com/emiliopalmerini/grimorio/internal/textutil"
 )
 
-const maxDiffLines = 500
-
 func GetDiff(all bool) (string, error) {
-	return git.GetDiff(git.DiffOptions{All: all, MaxLines: maxDiffLines})
+	return git.GetDiff(git.DiffOptions{All: all, MaxLines: git.DefaultMaxDiffLines})
 }
 
 func GetRecentCommits(n int) (string, error) {
