@@ -10,6 +10,7 @@ import (
 	"github.com/emiliopalmerini/grimorio/cmd/mending"
 	modifymemory "github.com/emiliopalmerini/grimorio/cmd/modify-memory"
 	"github.com/emiliopalmerini/grimorio/cmd/polymorph"
+	"github.com/emiliopalmerini/grimorio/cmd/prepare"
 	"github.com/emiliopalmerini/grimorio/cmd/scrying"
 	"github.com/emiliopalmerini/grimorio/cmd/sending"
 	"github.com/emiliopalmerini/grimorio/cmd/stats"
@@ -45,6 +46,7 @@ func init() {
 	rootCmd.AddCommand(mending.Cmd)
 	rootCmd.AddCommand(modifymemory.Cmd)
 	rootCmd.AddCommand(polymorph.Cmd)
+	rootCmd.AddCommand(prepare.Cmd)
 	rootCmd.AddCommand(scrying.Cmd)
 	rootCmd.AddCommand(sending.Cmd)
 	rootCmd.AddCommand(stats.Cmd)
