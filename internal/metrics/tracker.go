@@ -53,6 +53,7 @@ type Tracker interface {
 	RecordCommand(ctx context.Context, command string, cmdType CommandType, durationMs int64, exitCode int, flags string) error
 	RecordAI(ctx context.Context, command, model string, promptLen, responseLen int, latencyMs int64, success bool, errMsg string) error
 	GetSummary(ctx context.Context, filter Filter) (Summary, error)
+	Queries(ctx context.Context) (*db.Queries, error)
 	Close() error
 }
 
@@ -162,6 +163,7 @@ func (t *SQLiteTracker) RecordCommand(ctx context.Context, command string, cmdTy
 		DurationMs:  durationMs,
 		ExitCode:    int64(exitCode),
 		Flags:       flagsSQL,
+		MachineID:   GetMachineID(),
 	})
 	if err != nil {
 		return fmt.Errorf("insert command execution: %w", err)
@@ -192,6 +194,7 @@ func (t *SQLiteTracker) RecordAI(ctx context.Context, command, model string, pro
 		LatencyMs:      sql.NullInt64{Int64: latencyMs, Valid: true},
 		Success:        successInt,
 		Error:          errSQL,
+		MachineID:      GetMachineID(),
 	})
 	if err != nil {
 		return fmt.Errorf("insert ai invocation: %w", err)

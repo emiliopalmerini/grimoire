@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"strings"
 )
 
 const getAIStats = `-- name: GetAIStats :one
@@ -190,8 +191,51 @@ func (q *Queries) GetFailureCount(ctx context.Context, arg GetFailureCountParams
 	return failures, err
 }
 
+const getMachineStats = `-- name: GetMachineStats :many
+SELECT machine_id, COUNT(*) as count
+FROM command_executions
+WHERE machine_id != ''
+  AND datetime(executed_at) >= datetime(?1)
+  AND datetime(executed_at) <= datetime(?2)
+GROUP BY machine_id
+ORDER BY count DESC
+`
+
+type GetMachineStatsParams struct {
+	FromDate interface{}
+	ToDate   interface{}
+}
+
+type GetMachineStatsRow struct {
+	MachineID string
+	Count     int64
+}
+
+func (q *Queries) GetMachineStats(ctx context.Context, arg GetMachineStatsParams) ([]GetMachineStatsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMachineStats, arg.FromDate, arg.ToDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetMachineStatsRow{}
+	for rows.Next() {
+		var i GetMachineStatsRow
+		if err := rows.Scan(&i.MachineID, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRecentAIInvocations = `-- name: GetRecentAIInvocations :many
-SELECT id, command, model, prompt_length, response_length, latency_ms, success, error, created_at FROM ai_invocations
+SELECT id, command, model, prompt_length, response_length, latency_ms, success, error, created_at, machine_id, synced FROM ai_invocations
 ORDER BY created_at DESC
 LIMIT ?
 `
@@ -215,6 +259,8 @@ func (q *Queries) GetRecentAIInvocations(ctx context.Context, limit int64) ([]Ai
 			&i.Success,
 			&i.Error,
 			&i.CreatedAt,
+			&i.MachineID,
+			&i.Synced,
 		); err != nil {
 			return nil, err
 		}
@@ -230,7 +276,7 @@ func (q *Queries) GetRecentAIInvocations(ctx context.Context, limit int64) ([]Ai
 }
 
 const getRecentCommands = `-- name: GetRecentCommands :many
-SELECT id, command, command_type, duration_ms, exit_code, flags, executed_at FROM command_executions
+SELECT id, command, command_type, duration_ms, exit_code, flags, executed_at, machine_id, synced FROM command_executions
 WHERE (?1 = '' OR command = ?1)
 ORDER BY executed_at DESC
 LIMIT ?2
@@ -258,6 +304,8 @@ func (q *Queries) GetRecentCommands(ctx context.Context, arg GetRecentCommandsPa
 			&i.ExitCode,
 			&i.Flags,
 			&i.ExecutedAt,
+			&i.MachineID,
+			&i.Synced,
 		); err != nil {
 			return nil, err
 		}
@@ -292,9 +340,91 @@ func (q *Queries) GetTotalCommands(ctx context.Context, arg GetTotalCommandsPara
 	return total, err
 }
 
+const getUnsyncedAIInvocations = `-- name: GetUnsyncedAIInvocations :many
+SELECT id, command, model, prompt_length, response_length, latency_ms, success, error, created_at, machine_id, synced FROM ai_invocations
+WHERE synced = 0
+ORDER BY id ASC
+LIMIT ?
+`
+
+func (q *Queries) GetUnsyncedAIInvocations(ctx context.Context, limit int64) ([]AiInvocation, error) {
+	rows, err := q.db.QueryContext(ctx, getUnsyncedAIInvocations, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AiInvocation{}
+	for rows.Next() {
+		var i AiInvocation
+		if err := rows.Scan(
+			&i.ID,
+			&i.Command,
+			&i.Model,
+			&i.PromptLength,
+			&i.ResponseLength,
+			&i.LatencyMs,
+			&i.Success,
+			&i.Error,
+			&i.CreatedAt,
+			&i.MachineID,
+			&i.Synced,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUnsyncedCommandExecutions = `-- name: GetUnsyncedCommandExecutions :many
+SELECT id, command, command_type, duration_ms, exit_code, flags, executed_at, machine_id, synced FROM command_executions
+WHERE synced = 0
+ORDER BY id ASC
+LIMIT ?
+`
+
+func (q *Queries) GetUnsyncedCommandExecutions(ctx context.Context, limit int64) ([]CommandExecution, error) {
+	rows, err := q.db.QueryContext(ctx, getUnsyncedCommandExecutions, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommandExecution{}
+	for rows.Next() {
+		var i CommandExecution
+		if err := rows.Scan(
+			&i.ID,
+			&i.Command,
+			&i.CommandType,
+			&i.DurationMs,
+			&i.ExitCode,
+			&i.Flags,
+			&i.ExecutedAt,
+			&i.MachineID,
+			&i.Synced,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertAIInvocation = `-- name: InsertAIInvocation :one
-INSERT INTO ai_invocations (command, model, prompt_length, response_length, latency_ms, success, error)
-VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id, command, model, prompt_length, response_length, latency_ms, success, error, created_at
+INSERT INTO ai_invocations (command, model, prompt_length, response_length, latency_ms, success, error, machine_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, command, model, prompt_length, response_length, latency_ms, success, error, created_at, machine_id, synced
 `
 
 type InsertAIInvocationParams struct {
@@ -305,6 +435,7 @@ type InsertAIInvocationParams struct {
 	LatencyMs      sql.NullInt64
 	Success        int64
 	Error          sql.NullString
+	MachineID      string
 }
 
 func (q *Queries) InsertAIInvocation(ctx context.Context, arg InsertAIInvocationParams) (AiInvocation, error) {
@@ -316,6 +447,7 @@ func (q *Queries) InsertAIInvocation(ctx context.Context, arg InsertAIInvocation
 		arg.LatencyMs,
 		arg.Success,
 		arg.Error,
+		arg.MachineID,
 	)
 	var i AiInvocation
 	err := row.Scan(
@@ -328,13 +460,15 @@ func (q *Queries) InsertAIInvocation(ctx context.Context, arg InsertAIInvocation
 		&i.Success,
 		&i.Error,
 		&i.CreatedAt,
+		&i.MachineID,
+		&i.Synced,
 	)
 	return i, err
 }
 
 const insertCommandExecution = `-- name: InsertCommandExecution :one
-INSERT INTO command_executions (command, command_type, duration_ms, exit_code, flags)
-VALUES (?, ?, ?, ?, ?) RETURNING id, command, command_type, duration_ms, exit_code, flags, executed_at
+INSERT INTO command_executions (command, command_type, duration_ms, exit_code, flags, machine_id)
+VALUES (?, ?, ?, ?, ?, ?) RETURNING id, command, command_type, duration_ms, exit_code, flags, executed_at, machine_id, synced
 `
 
 type InsertCommandExecutionParams struct {
@@ -343,6 +477,7 @@ type InsertCommandExecutionParams struct {
 	DurationMs  int64
 	ExitCode    int64
 	Flags       sql.NullString
+	MachineID   string
 }
 
 func (q *Queries) InsertCommandExecution(ctx context.Context, arg InsertCommandExecutionParams) (CommandExecution, error) {
@@ -352,6 +487,7 @@ func (q *Queries) InsertCommandExecution(ctx context.Context, arg InsertCommandE
 		arg.DurationMs,
 		arg.ExitCode,
 		arg.Flags,
+		arg.MachineID,
 	)
 	var i CommandExecution
 	err := row.Scan(
@@ -362,6 +498,46 @@ func (q *Queries) InsertCommandExecution(ctx context.Context, arg InsertCommandE
 		&i.ExitCode,
 		&i.Flags,
 		&i.ExecutedAt,
+		&i.MachineID,
+		&i.Synced,
 	)
 	return i, err
+}
+
+const markAIInvocationsSynced = `-- name: MarkAIInvocationsSynced :exec
+UPDATE ai_invocations SET synced = 1 WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) MarkAIInvocationsSynced(ctx context.Context, ids []int64) error {
+	query := markAIInvocationsSynced
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, query, queryParams...)
+	return err
+}
+
+const markCommandExecutionsSynced = `-- name: MarkCommandExecutionsSynced :exec
+UPDATE command_executions SET synced = 1 WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) MarkCommandExecutionsSynced(ctx context.Context, ids []int64) error {
+	query := markCommandExecutionsSynced
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, query, queryParams...)
+	return err
 }

@@ -18,6 +18,8 @@ type AiInvocation struct {
 	Success        int64
 	Error          sql.NullString
 	CreatedAt      sql.NullTime
+	MachineID      string
+	Synced         int64
 }
 
 type CommandExecution struct {
@@ -28,4 +30,6 @@ type CommandExecution struct {
 	ExitCode    int64
 	Flags       sql.NullString
 	ExecutedAt  sql.NullTime
+	MachineID   string
+	Synced      int64
 }

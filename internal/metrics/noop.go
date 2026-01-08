@@ -1,6 +1,13 @@
 package metrics
 
-import "context"
+import (
+	"context"
+	"errors"
+
+	"github.com/emiliopalmerini/grimorio/internal/metrics/db"
+)
+
+var ErrNoDatabase = errors.New("no database available")
 
 type NoopTracker struct{}
 
@@ -14,6 +21,10 @@ func (NoopTracker) RecordAI(context.Context, string, string, int, int, int64, bo
 
 func (NoopTracker) GetSummary(context.Context, Filter) (Summary, error) {
 	return Summary{}, nil
+}
+
+func (NoopTracker) Queries(context.Context) (*db.Queries, error) {
+	return nil, ErrNoDatabase
 }
 
 func (NoopTracker) Close() error {

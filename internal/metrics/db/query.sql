@@ -1,10 +1,10 @@
 -- name: InsertCommandExecution :one
-INSERT INTO command_executions (command, command_type, duration_ms, exit_code, flags)
-VALUES (?, ?, ?, ?, ?) RETURNING *;
+INSERT INTO command_executions (command, command_type, duration_ms, exit_code, flags, machine_id)
+VALUES (?, ?, ?, ?, ?, ?) RETURNING *;
 
 -- name: InsertAIInvocation :one
-INSERT INTO ai_invocations (command, model, prompt_length, response_length, latency_ms, success, error)
-VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *;
+INSERT INTO ai_invocations (command, model, prompt_length, response_length, latency_ms, success, error, machine_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *;
 
 -- name: GetDistinctCommands :many
 SELECT DISTINCT command FROM command_executions ORDER BY command;
@@ -60,3 +60,30 @@ LIMIT sqlc.arg(limit_count);
 SELECT * FROM ai_invocations
 ORDER BY created_at DESC
 LIMIT ?;
+
+-- name: GetUnsyncedCommandExecutions :many
+SELECT * FROM command_executions
+WHERE synced = 0
+ORDER BY id ASC
+LIMIT ?;
+
+-- name: GetUnsyncedAIInvocations :many
+SELECT * FROM ai_invocations
+WHERE synced = 0
+ORDER BY id ASC
+LIMIT ?;
+
+-- name: MarkCommandExecutionsSynced :exec
+UPDATE command_executions SET synced = 1 WHERE id IN (sqlc.slice(ids));
+
+-- name: MarkAIInvocationsSynced :exec
+UPDATE ai_invocations SET synced = 1 WHERE id IN (sqlc.slice(ids));
+
+-- name: GetMachineStats :many
+SELECT machine_id, COUNT(*) as count
+FROM command_executions
+WHERE machine_id != ''
+  AND datetime(executed_at) >= datetime(sqlc.arg(from_date))
+  AND datetime(executed_at) <= datetime(sqlc.arg(to_date))
+GROUP BY machine_id
+ORDER BY count DESC;
