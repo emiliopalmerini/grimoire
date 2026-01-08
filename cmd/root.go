@@ -16,6 +16,7 @@ import (
 	"github.com/emiliopalmerini/grimorio/cmd/stats"
 	"github.com/emiliopalmerini/grimorio/cmd/summon"
 	"github.com/emiliopalmerini/grimorio/internal/metrics"
+	"github.com/emiliopalmerini/grimorio/internal/metrics/turso"
 	"github.com/spf13/cobra"
 )
 
@@ -31,6 +32,11 @@ func Execute() {
 		tracker := metrics.NewSQLiteTracker(dbPath)
 		metrics.Default = tracker
 		defer tracker.Close()
+
+		// Configure Turso client for immediate sync if env vars are set
+		if tursoConfig := turso.ConfigFromEnv(); tursoConfig != nil {
+			tracker.SetTursoClient(turso.NewClient(tursoConfig))
+		}
 	}
 
 	if err := rootCmd.Execute(); err != nil {

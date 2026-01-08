@@ -5,20 +5,45 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/emiliopalmerini/grimorio/internal/metrics/db"
+	"github.com/emiliopalmerini/grimorio/internal/metrics/turso"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "modernc.org/sqlite"
 )
 
+const (
+	tursoSyncTimeout = 3 * time.Second
+	maxDateSentinel  = "9999-12-31 23:59:59"
+	timestampFormat  = "2006-01-02 15:04:05" // SQLite-compatible datetime format
+)
+
 //go:embed db/migrations/*.sql
 var migrationsFS embed.FS
+
+// toNullString converts a string to sql.NullString, treating empty strings as NULL.
+func toNullString(s string) sql.NullString {
+	if s == "" {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: s, Valid: true}
+}
+
+// toNullableArg converts a string to an interface{} suitable for Turso queries,
+// returning nil for empty strings to represent NULL.
+func toNullableArg(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	return s
+}
 
 type CommandType string
 
@@ -74,14 +99,54 @@ func Track(command string, cmdType CommandType, flags string, fn func() error) e
 type SQLiteTracker struct {
 	dbPath string
 
-	mu      sync.Mutex
-	sqlDB   *sql.DB
-	queries *db.Queries
-	init    bool
+	mu          sync.Mutex
+	sqlDB       *sql.DB
+	queries     *db.Queries
+	init        bool
+	tursoClient *turso.Client
+	syncWg      sync.WaitGroup
 }
 
 func NewSQLiteTracker(dbPath string) *SQLiteTracker {
 	return &SQLiteTracker{dbPath: dbPath}
+}
+
+func (t *SQLiteTracker) SetTursoClient(client *turso.Client) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.tursoClient = client
+}
+
+func (t *SQLiteTracker) getTursoClient() *turso.Client {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.tursoClient
+}
+
+// tursoSyncJob represents a sync operation to be executed against Turso.
+type tursoSyncJob struct {
+	recordType string
+	localID    int64
+	query      string
+	args       []interface{}
+	markSynced func(ctx context.Context, ids []int64) error
+}
+
+// syncToTurso executes a sync job against Turso and marks the local record as synced.
+func (t *SQLiteTracker) syncToTurso(client *turso.Client, job tursoSyncJob) {
+	defer t.syncWg.Done()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tursoSyncTimeout)
+	defer cancel()
+
+	if _, err := client.Execute(ctx, job.query, job.args...); err != nil {
+		log.Printf("metrics: failed to sync %s to Turso: %v", job.recordType, err)
+		return
+	}
+
+	if err := job.markSynced(ctx, []int64{job.localID}); err != nil {
+		log.Printf("metrics: failed to mark %s %d as synced: %v", job.recordType, job.localID, err)
+	}
 }
 
 func DefaultDBPath() (string, error) {
@@ -152,22 +217,33 @@ func (t *SQLiteTracker) RecordCommand(ctx context.Context, command string, cmdTy
 		return err
 	}
 
-	var flagsSQL sql.NullString
-	if flags != "" {
-		flagsSQL = sql.NullString{String: flags, Valid: true}
-	}
+	machineID := GetMachineID()
+	executedAt := time.Now()
 
-	_, err := t.queries.InsertCommandExecution(ctx, db.InsertCommandExecutionParams{
+	result, err := t.queries.InsertCommandExecution(ctx, db.InsertCommandExecutionParams{
 		Command:     command,
 		CommandType: string(cmdType),
 		DurationMs:  durationMs,
 		ExitCode:    int64(exitCode),
-		Flags:       flagsSQL,
-		MachineID:   GetMachineID(),
+		Flags:       toNullString(flags),
+		MachineID:   machineID,
 	})
 	if err != nil {
 		return fmt.Errorf("insert command execution: %w", err)
 	}
+
+	if client := t.getTursoClient(); client != nil {
+		t.syncWg.Add(1)
+		go t.syncToTurso(client, tursoSyncJob{
+			recordType: "command execution",
+			localID:    result.ID,
+			query: `INSERT INTO command_executions (command, command_type, duration_ms, exit_code, flags, executed_at, machine_id, synced)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+			args:       []interface{}{command, string(cmdType), durationMs, int64(exitCode), toNullableArg(flags), executedAt.Format(timestampFormat), machineID},
+			markSynced: t.queries.MarkCommandExecutionsSynced,
+		})
+	}
+
 	return nil
 }
 
@@ -181,24 +257,35 @@ func (t *SQLiteTracker) RecordAI(ctx context.Context, command, model string, pro
 		successInt = 1
 	}
 
-	var errSQL sql.NullString
-	if errMsg != "" {
-		errSQL = sql.NullString{String: errMsg, Valid: true}
-	}
+	machineID := GetMachineID()
+	createdAt := time.Now()
 
-	_, err := t.queries.InsertAIInvocation(ctx, db.InsertAIInvocationParams{
+	result, err := t.queries.InsertAIInvocation(ctx, db.InsertAIInvocationParams{
 		Command:        command,
 		Model:          model,
 		PromptLength:   sql.NullInt64{Int64: int64(promptLen), Valid: true},
 		ResponseLength: sql.NullInt64{Int64: int64(responseLen), Valid: true},
 		LatencyMs:      sql.NullInt64{Int64: latencyMs, Valid: true},
 		Success:        successInt,
-		Error:          errSQL,
-		MachineID:      GetMachineID(),
+		Error:          toNullString(errMsg),
+		MachineID:      machineID,
 	})
 	if err != nil {
 		return fmt.Errorf("insert ai invocation: %w", err)
 	}
+
+	if client := t.getTursoClient(); client != nil {
+		t.syncWg.Add(1)
+		go t.syncToTurso(client, tursoSyncJob{
+			recordType: "AI invocation",
+			localID:    result.ID,
+			query: `INSERT INTO ai_invocations (command, model, prompt_length, response_length, latency_ms, success, error, created_at, machine_id, synced)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+			args:       []interface{}{command, model, promptLen, responseLen, latencyMs, successInt, toNullableArg(errMsg), createdAt.Format(timestampFormat), machineID},
+			markSynced: t.queries.MarkAIInvocationsSynced,
+		})
+	}
+
 	return nil
 }
 
@@ -207,10 +294,10 @@ func (t *SQLiteTracker) GetSummary(ctx context.Context, filter Filter) (Summary,
 		return Summary{}, err
 	}
 
-	fromStr := filter.From.Format("2006-01-02 15:04:05")
-	toStr := filter.To.Format("2006-01-02 15:04:05")
+	fromStr := filter.From.Format(timestampFormat)
+	toStr := filter.To.Format(timestampFormat)
 	if filter.To.IsZero() {
-		toStr = "9999-12-31 23:59:59"
+		toStr = maxDateSentinel
 	}
 
 	total, err := t.queries.GetTotalCommands(ctx, db.GetTotalCommandsParams{
@@ -277,6 +364,9 @@ func (t *SQLiteTracker) GetSummary(ctx context.Context, filter Filter) (Summary,
 }
 
 func (t *SQLiteTracker) Close() error {
+	// Wait for any pending Turso syncs to complete
+	t.syncWg.Wait()
+
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
