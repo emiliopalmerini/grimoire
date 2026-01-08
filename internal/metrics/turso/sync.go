@@ -3,6 +3,7 @@ package turso
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/emiliopalmerini/grimorio/internal/metrics/db"
@@ -66,28 +67,28 @@ func (s *Syncer) syncCommandExecutions(ctx context.Context) (int, error) {
 		ids := make([]int64, len(records))
 
 		for i, rec := range records {
-			executedAt := ""
+			executedAt := nullArg()
 			if rec.ExecutedAt.Valid {
-				executedAt = rec.ExecutedAt.Time.Format(time.RFC3339)
+				executedAt = textArg(rec.ExecutedAt.Time.Format(time.RFC3339))
 			}
 
-			flags := interface{}(nil)
+			flags := nullArg()
 			if rec.Flags.Valid {
-				flags = rec.Flags.String
+				flags = textArg(rec.Flags.String)
 			}
 
 			statements[i] = statement{
 				SQL: `INSERT INTO command_executions
 					(command, command_type, duration_ms, exit_code, flags, executed_at, machine_id, synced)
 					VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
-				Args: []interface{}{
-					rec.Command,
-					rec.CommandType,
-					rec.DurationMs,
-					rec.ExitCode,
+				Args: []argValue{
+					textArg(rec.Command),
+					textArg(rec.CommandType),
+					intArg(rec.DurationMs),
+					intArg(rec.ExitCode),
 					flags,
 					executedAt,
-					rec.MachineID,
+					textArg(rec.MachineID),
 				},
 			}
 			ids[i] = rec.ID
@@ -128,41 +129,43 @@ func (s *Syncer) syncAIInvocations(ctx context.Context) (int, error) {
 		ids := make([]int64, len(records))
 
 		for i, rec := range records {
-			createdAt := ""
+			createdAt := nullArg()
 			if rec.CreatedAt.Valid {
-				createdAt = rec.CreatedAt.Time.Format(time.RFC3339)
+				createdAt = textArg(rec.CreatedAt.Time.Format(time.RFC3339))
 			}
 
-			var promptLen, responseLen, latencyMs interface{}
+			promptLen := nullArg()
 			if rec.PromptLength.Valid {
-				promptLen = rec.PromptLength.Int64
+				promptLen = intArg(rec.PromptLength.Int64)
 			}
+			responseLen := nullArg()
 			if rec.ResponseLength.Valid {
-				responseLen = rec.ResponseLength.Int64
+				responseLen = intArg(rec.ResponseLength.Int64)
 			}
+			latencyMs := nullArg()
 			if rec.LatencyMs.Valid {
-				latencyMs = rec.LatencyMs.Int64
+				latencyMs = intArg(rec.LatencyMs.Int64)
 			}
 
-			errMsg := interface{}(nil)
+			errMsg := nullArg()
 			if rec.Error.Valid {
-				errMsg = rec.Error.String
+				errMsg = textArg(rec.Error.String)
 			}
 
 			statements[i] = statement{
 				SQL: `INSERT INTO ai_invocations
 					(command, model, prompt_length, response_length, latency_ms, success, error, created_at, machine_id, synced)
 					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
-				Args: []interface{}{
-					rec.Command,
-					rec.Model,
+				Args: []argValue{
+					textArg(rec.Command),
+					textArg(rec.Model),
 					promptLen,
 					responseLen,
 					latencyMs,
-					rec.Success,
+					intArg(rec.Success),
 					errMsg,
 					createdAt,
-					rec.MachineID,
+					textArg(rec.MachineID),
 				},
 			}
 			ids[i] = rec.ID
@@ -229,9 +232,7 @@ func (s *Syncer) GetRemoteSummary(ctx context.Context, from, to time.Time) (*Rem
 		return nil, fmt.Errorf("get total commands: %w", err)
 	}
 	if len(totalResult.Rows) > 0 && len(totalResult.Rows[0]) > 0 {
-		if v, ok := totalResult.Rows[0][0].(float64); ok {
-			summary.TotalCommands = int64(v)
-		}
+		summary.TotalCommands = extractInt(totalResult.Rows[0][0])
 	}
 
 	failuresResult, err := s.client.Execute(ctx, `
@@ -243,9 +244,7 @@ func (s *Syncer) GetRemoteSummary(ctx context.Context, from, to time.Time) (*Rem
 		return nil, fmt.Errorf("get failures: %w", err)
 	}
 	if len(failuresResult.Rows) > 0 && len(failuresResult.Rows[0]) > 0 {
-		if v, ok := failuresResult.Rows[0][0].(float64); ok {
-			summary.TotalFailures = int64(v)
-		}
+		summary.TotalFailures = extractInt(failuresResult.Rows[0][0])
 	}
 
 	machineResult, err := s.client.Execute(ctx, `
@@ -259,14 +258,9 @@ func (s *Syncer) GetRemoteSummary(ctx context.Context, from, to time.Time) (*Rem
 	}
 	for _, row := range machineResult.Rows {
 		if len(row) >= 2 {
-			machineID, _ := row[0].(string)
-			count := int64(0)
-			if v, ok := row[1].(float64); ok {
-				count = int64(v)
-			}
 			summary.MachineStats = append(summary.MachineStats, MachineStats{
-				MachineID: machineID,
-				Count:     count,
+				MachineID: extractString(row[0]),
+				Count:     extractInt(row[1]),
 			})
 		}
 	}
@@ -282,19 +276,10 @@ func (s *Syncer) GetRemoteSummary(ctx context.Context, from, to time.Time) (*Rem
 	}
 	for _, row := range cmdResult.Rows {
 		if len(row) >= 3 {
-			command, _ := row[0].(string)
-			count := int64(0)
-			avgDur := 0.0
-			if v, ok := row[1].(float64); ok {
-				count = int64(v)
-			}
-			if v, ok := row[2].(float64); ok {
-				avgDur = v
-			}
 			summary.CommandStats = append(summary.CommandStats, CommandStats{
-				Command:       command,
-				Count:         count,
-				AvgDurationMs: avgDur,
+				Command:       extractString(row[0]),
+				Count:         extractInt(row[1]),
+				AvgDurationMs: extractFloat(row[2]),
 			})
 		}
 	}
@@ -312,19 +297,59 @@ func (s *Syncer) GetRemoteSummary(ctx context.Context, from, to time.Time) (*Rem
 	}
 	if len(aiResult.Rows) > 0 && len(aiResult.Rows[0]) >= 4 {
 		row := aiResult.Rows[0]
-		if v, ok := row[0].(float64); ok {
-			summary.AIStats.TotalCalls = int64(v)
-		}
-		if v, ok := row[1].(float64); ok {
-			summary.AIStats.TotalPromptTokens = int64(v)
-		}
-		if v, ok := row[2].(float64); ok {
-			summary.AIStats.TotalResponseTokens = int64(v)
-		}
-		if v, ok := row[3].(float64); ok {
-			summary.AIStats.AvgLatencyMs = v
-		}
+		summary.AIStats.TotalCalls = extractInt(row[0])
+		summary.AIStats.TotalPromptTokens = extractInt(row[1])
+		summary.AIStats.TotalResponseTokens = extractInt(row[2])
+		summary.AIStats.AvgLatencyMs = extractFloat(row[3])
 	}
 
 	return summary, nil
+}
+
+func extractInt(v interface{}) int64 {
+	switch val := v.(type) {
+	case float64:
+		return int64(val)
+	case int64:
+		return val
+	case map[string]interface{}:
+		if s, ok := val["value"].(string); ok {
+			i, _ := strconv.ParseInt(s, 10, 64)
+			return i
+		}
+		if f, ok := val["value"].(float64); ok {
+			return int64(f)
+		}
+	}
+	return 0
+}
+
+func extractFloat(v interface{}) float64 {
+	switch val := v.(type) {
+	case float64:
+		return val
+	case int64:
+		return float64(val)
+	case map[string]interface{}:
+		if s, ok := val["value"].(string); ok {
+			f, _ := strconv.ParseFloat(s, 64)
+			return f
+		}
+		if f, ok := val["value"].(float64); ok {
+			return f
+		}
+	}
+	return 0
+}
+
+func extractString(v interface{}) string {
+	switch val := v.(type) {
+	case string:
+		return val
+	case map[string]interface{}:
+		if s, ok := val["value"].(string); ok {
+			return s
+		}
+	}
+	return ""
 }

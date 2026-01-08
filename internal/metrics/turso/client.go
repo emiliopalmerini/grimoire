@@ -59,8 +59,64 @@ type stmtRequest struct {
 }
 
 type statement struct {
-	SQL  string        `json:"sql"`
-	Args []interface{} `json:"args,omitempty"`
+	SQL  string     `json:"sql"`
+	Args []argValue `json:"args,omitempty"`
+}
+
+type argValue struct {
+	Type  string  `json:"type"`
+	Value *string `json:"value,omitempty"`
+}
+
+func toArgValue(v interface{}) argValue {
+	if v == nil {
+		return argValue{Type: "null"}
+	}
+	switch val := v.(type) {
+	case int:
+		s := fmt.Sprintf("%d", val)
+		return argValue{Type: "integer", Value: &s}
+	case int64:
+		s := fmt.Sprintf("%d", val)
+		return argValue{Type: "integer", Value: &s}
+	case int32:
+		s := fmt.Sprintf("%d", val)
+		return argValue{Type: "integer", Value: &s}
+	case float64:
+		s := fmt.Sprintf("%.15g", val)
+		return argValue{Type: "float", Value: &s}
+	case float32:
+		s := fmt.Sprintf("%.7g", val)
+		return argValue{Type: "float", Value: &s}
+	case string:
+		return argValue{Type: "text", Value: &val}
+	case []byte:
+		s := string(val)
+		return argValue{Type: "blob", Value: &s}
+	case bool:
+		if val {
+			s := "1"
+			return argValue{Type: "integer", Value: &s}
+		}
+		s := "0"
+		return argValue{Type: "integer", Value: &s}
+	default:
+		s := fmt.Sprintf("%v", val)
+		return argValue{Type: "text", Value: &s}
+	}
+}
+
+func textArg(s string) argValue {
+	return argValue{Type: "text", Value: &s}
+}
+
+func intArg(i int64) argValue {
+	s := fmt.Sprintf("%d", i)
+	return argValue{Type: "integer", Value: &s}
+}
+
+func nullArg() argValue {
+	return argValue{Type: "null"}
 }
 
 type pipelineResponse struct {
@@ -96,6 +152,21 @@ type errorResult struct {
 }
 
 func (c *Client) Execute(ctx context.Context, sql string, args ...interface{}) (*execResult, error) {
+	argValues := make([]argValue, len(args))
+	for i, a := range args {
+		argValues[i] = toArgValue(a)
+	}
+	results, err := c.ExecuteBatch(ctx, []statement{{SQL: sql, Args: argValues}})
+	if err != nil {
+		return nil, err
+	}
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no results returned")
+	}
+	return results[0], nil
+}
+
+func (c *Client) ExecuteWithArgs(ctx context.Context, sql string, args []argValue) (*execResult, error) {
 	results, err := c.ExecuteBatch(ctx, []statement{{SQL: sql, Args: args}})
 	if err != nil {
 		return nil, err
