@@ -32,9 +32,10 @@ type TextDocumentEdit struct {
 }
 
 type DocumentSymbol struct {
-	Name string
-	Kind string
-	Line int
+	Name    string
+	Kind    string
+	Line    int
+	EndLine int
 }
 
 var symbolKindNames = map[int]string{

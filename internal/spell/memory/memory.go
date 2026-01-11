@@ -7,13 +7,26 @@ import (
 	"strings"
 
 	"github.com/emiliopalmerini/grimorio/internal/claude"
+	"github.com/emiliopalmerini/grimorio/internal/diff"
 	"github.com/emiliopalmerini/grimorio/internal/editor"
 	"github.com/emiliopalmerini/grimorio/internal/git"
 	"github.com/emiliopalmerini/grimorio/internal/textutil"
 )
 
 func GetDiff(all bool) (string, error) {
-	return git.GetDiff(git.DiffOptions{All: all, MaxLines: git.DefaultMaxDiffLines})
+	rawDiff, err := git.GetDiff(git.DiffOptions{All: all})
+	if err != nil {
+		return "", err
+	}
+
+	opts := diff.DefaultOptions()
+	prioritized, err := diff.Prioritize(rawDiff, opts)
+	if err != nil {
+		// Fall back to raw diff on error
+		return git.TruncateDiff(rawDiff, git.DefaultMaxDiffLines), nil
+	}
+
+	return diff.FormatForPrompt(prioritized), nil
 }
 
 func GetRecentCommits(n int) (string, error) {

@@ -227,9 +227,10 @@ func (c *Client) DocumentSymbols(uri string) ([]DocumentSymbol, error) {
 					kind = "Unknown"
 				}
 				symbols = append(symbols, DocumentSymbol{
-					Name: s.Name,
-					Kind: kind,
-					Line: s.Range.Start.Line,
+					Name:    s.Name,
+					Kind:    kind,
+					Line:    s.Range.Start.Line,
+					EndLine: s.Range.End.Line,
 				})
 				if len(s.Children) > 0 {
 					flatten(s.Children)
@@ -248,9 +249,10 @@ func (c *Client) DocumentSymbols(uri string) ([]DocumentSymbol, error) {
 				kind = "Unknown"
 			}
 			symbols = append(symbols, DocumentSymbol{
-				Name: s.Name,
-				Kind: kind,
-				Line: s.Location.Range.Start.Line,
+				Name:    s.Name,
+				Kind:    kind,
+				Line:    s.Location.Range.Start.Line,
+				EndLine: s.Location.Range.End.Line,
 			})
 		}
 		return symbols, nil
